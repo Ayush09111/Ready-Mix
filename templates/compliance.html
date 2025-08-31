@@ -1,0 +1,215 @@
+{% extends "base.html" %}
+
+{% block title %}Compliance & Documents - ERP System{% endblock %}
+
+{% block content %}
+<style>
+    .main-header {
+        background: linear-gradient(90deg, #20c997 0%, #0dcaf0 100%);
+        color: white;
+        padding: 2.5rem;
+        border-radius: 1rem;
+        margin-bottom: 2.5rem;
+        box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+    }
+    .table thead th, .table tbody td {
+        vertical-align: middle;
+    }
+    .status-expired { color: #dc3545; font-weight: bold; }
+    .status-valid { color: #198754; font-weight: bold; }
+    .status-pending { color: #fd7e14; font-weight: bold; }
+</style>
+
+<!-- Header -->
+<div class="main-header">
+    <h2><i class="fas fa-file-contract me-2"></i> Compliance & Document Management</h2>
+    <p class="lead mb-0">Track, upload, and manage company compliance requirements, certifications, and legal documents.</p>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Compliance Documents</h5>
+                <button class="btn btn-primary" id="addDocBtn"><i class="fas fa-plus me-2"></i>New Document</button>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Doc ID</th>
+                                <th>Title</th>
+                                <th>Type</th>
+                                <th>Issue Date</th>
+                                <th>Expiry Date</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for doc in documents %}
+                            <tr>
+                                <td>{{ doc.DocumentID }}</td>
+                                <td><strong>{{ doc.Title }}</strong></td>
+                                <td>{{ doc.Type }}</td>
+                                <td>{{ doc.IssueDate }}</td>
+                                <td>{{ doc.ExpiryDate }}</td>
+                                <td>
+                                    {% if doc.Status == "Expired" %}
+                                        <span class="status-expired">Expired</span>
+                                    {% elif doc.Status == "Pending" %}
+                                        <span class="status-pending">Pending</span>
+                                    {% else %}
+                                        <span class="status-valid">Valid</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{{ url_for('download_doc', doc_id=doc.DocumentID) }}" class="btn btn-sm btn-outline-info"><i class="fas fa-download"></i></a>
+                                    <button class="btn btn-sm btn-outline-warning edit-btn"
+                                            data-id="{{ doc.DocumentID }}"
+                                            data-title="{{ doc.Title }}"
+                                            data-type="{{ doc.Type }}"
+                                            data-issued="{{ doc.IssueDate }}"
+                                            data-expiry="{{ doc.ExpiryDate }}">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger delete-btn" 
+                                            data-id="{{ doc.DocumentID }}"
+                                            data-title="{{ doc.Title }}">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Compliance Summary -->
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header"><h5 class="mb-0">Summary</h5></div>
+            <div class="card-body">
+                <ul class="list-group">
+                    <li class="list-group-item d-flex justify-content-between">Total Documents <span class="badge bg-primary">{{ summary.total }}</span></li>
+                    <li class="list-group-item d-flex justify-content-between">Valid <span class="badge bg-success">{{ summary.valid }}</span></li>
+                    <li class="list-group-item d-flex justify-content-between">Pending <span class="badge bg-warning">{{ summary.pending }}</span></li>
+                    <li class="list-group-item d-flex justify-content-between">Expired <span class="badge bg-danger">{{ summary.expired }}</span></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add/Edit Document Modal -->
+<div id="docModal" class="modal fade" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <form id="docForm" method="POST" enctype="multipart/form-data" action="{{ url_for('compliance') }}">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalTitle">Add New Document</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" name="doc_id" id="docId">
+            <div class="mb-3">
+                <label class="form-label">Title</label>
+                <input type="text" name="title" id="docTitle" class="form-control" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Type</label>
+                <select name="type" id="docType" class="form-select" required>
+                    <option value="License">License</option>
+                    <option value="Certification">Certification</option>
+                    <option value="Policy">Policy</option>
+                    <option value="Audit Report">Audit Report</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Issue Date</label>
+                <input type="date" name="issue_date" id="docIssued" class="form-control" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Expiry Date</label>
+                <input type="date" name="expiry_date" id="docExpiry" class="form-control" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Upload File</label>
+                <input type="file" name="file" class="form-control">
+            </div>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-success">Save</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Modal -->
+<div id="deleteModal" class="modal fade" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content text-center">
+      <div class="modal-header"><h5 class="modal-title">Confirm Deletion</h5></div>
+      <div class="modal-body">
+        <p id="deleteModalText"></p>
+      </div>
+      <div class="modal-footer">
+        <form id="deleteForm" method="POST">
+          <button type="submit" class="btn btn-danger">Delete</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const docModal = new bootstrap.Modal(document.getElementById('docModal'));
+    const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+    const docForm = document.getElementById('docForm');
+    const modalTitle = document.getElementById('modalTitle');
+
+    // Add Doc
+    document.getElementById('addDocBtn').addEventListener('click', function() {
+        modalTitle.innerText = "Add New Document";
+        docForm.reset();
+        docModal.show();
+    });
+
+    // Edit Doc
+    document.querySelectorAll('.edit-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            modalTitle.innerText = "Edit Document";
+            document.getElementById('docId').value = this.dataset.id;
+            document.getElementById('docTitle').value = this.dataset.title;
+            document.getElementById('docType').value = this.dataset.type;
+            document.getElementById('docIssued').value = this.dataset.issued;
+            document.getElementById('docExpiry').value = this.dataset.expiry;
+            docModal.show();
+        });
+    });
+
+    // Delete Doc
+    document.querySelectorAll('.delete-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const docId = this.dataset.id;
+            const title = this.dataset.title;
+            document.getElementById('deleteModalText').innerHTML = `Are you sure you want to delete <strong>${title}</strong>?`;
+            document.getElementById('deleteForm').action = `/compliance/delete/${docId}`;
+            deleteModal.show();
+        });
+    });
+});
+</script>
+{% endblock %}

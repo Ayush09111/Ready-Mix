@@ -1,0 +1,492 @@
+{% extends "base.html" %}
+
+{% block title %}Board (Kanban) - Job Kart{% endblock %}
+
+{% block content %}
+<style>
+  /* --- header */
+  .main-header {
+    background: linear-gradient(90deg, #6610f2 0%, #0d6efd 100%);
+    color: white;
+    padding: 1.5rem;
+    border-radius: 0.75rem;
+    margin-bottom: 1.75rem;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+  }
+
+  /* --- board layout */
+  .board-wrap { display: flex; gap: 1rem; align-items: flex-start; }
+  .board-column {
+    background: #f8f9fa;
+    border-radius: 0.75rem;
+    padding: 0.75rem;
+    width: 100%;
+    min-width: 260px;
+    max-height: 72vh;
+    overflow-y: auto;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+  }
+  .column-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem; }
+  .column-title { font-weight:600; font-size:1rem; }
+  .column-count { font-size:0.85rem; color:#6c757d; }
+
+  /* --- cards */
+  .kanban-card {
+    background: #fff;
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+    margin-bottom: 0.6rem;
+    cursor: grab;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    border-left: 4px solid transparent;
+  }
+  .kanban-card:focus { outline: 2px dashed #0d6efd; outline-offset: 3px; }
+  .kanban-card.dragging { opacity: 0.6; transform: scale(0.995); }
+  .card-title { font-weight:600; margin-bottom:0.25rem; }
+  .card-meta { font-size:0.85rem; color:#6c757d; display:flex; gap:0.5rem; flex-wrap:wrap; }
+  .card-badge { font-size:0.75rem; padding: 0.15rem 0.45rem; border-radius: 0.35rem; background:#e9ecef; color:#333; }
+
+  /* --- drop indicator */
+  .column-drop-target { border: 2px dashed rgba(13,110,253,0.12); }
+
+  /* --- toolbar */
+  .board-toolbar { display:flex; gap:0.75rem; align-items:center; margin-bottom:1rem; flex-wrap:wrap; }
+  .search-input { width:260px; }
+
+  /* --- modal tweaks (re-usable style) */
+  .custom-modal-overlay { position: fixed; inset: 0; display: none; z-index: 1050; }
+  .custom-modal-overlay.active { display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.45); }
+  .custom-modal { background:#fff; border-radius:0.5rem; max-width:700px; width:95%; box-shadow:0 10px 30px rgba(0,0,0,0.12); overflow:hidden; }
+  .custom-modal .modal-body { padding:1rem 1.25rem; }
+  .custom-modal .modal-header, .custom-modal .modal-footer { padding:0.75rem 1.25rem; background:#f7f7f7; }
+  .modal-actions { display:flex; justify-content:flex-end; gap:0.5rem; }
+  @media (max-width: 900px) {
+    .board-wrap { overflow-x: auto; }
+    .board-column { min-width: 300px; }
+  }
+</style>
+
+<div class="main-header">
+  <h3><i class="fas fa-th-large me-2"></i> Job Board — Kanban</h3>
+  <p class="mb-0">Drag & drop job cards across stages. Filter, create, edit and export tasks.</p>
+</div>
+
+<div class="board-toolbar mb-3">
+  <button class="btn btn-sm btn-primary" id="newCardBtn"><i class="fas fa-plus me-1"></i> New Card</button>
+
+  <input type="search" id="boardSearch" class="form-control form-control-sm search-input" placeholder="Search cards (id, title, customer)...">
+
+  <select id="filterAssignee" class="form-select form-select-sm" style="width:200px;">
+    <option value="">— All Assignees —</option>
+    {% for emp in employees %}
+      <option value="{{ emp.EmployeeID }}">{{ emp.Name }}</option>
+    {% endfor %}
+  </select>
+
+  <select id="filterPriority" class="form-select form-select-sm" style="width:160px;">
+    <option value="">— Priority —</option>
+    <option value="Low">Low</option>
+    <option value="Normal">Normal</option>
+    <option value="High">High</option>
+  </select>
+
+  <button class="btn btn-outline-secondary btn-sm ms-auto" id="exportCsvBtn"><i class="fas fa-file-csv me-1"></i> Export CSV</button>
+</div>
+
+<!-- Board columns -->
+<div id="board" class="board-wrap">
+  {% for col in columns %}
+  <div class="board-column" data-column-id="{{ col.ColumnID }}" aria-label="{{ col.Title }}" role="region">
+    <div class="column-header">
+      <div>
+        <div class="column-title">{{ col.Title }}</div>
+        <div class="column-count" id="count-{{ col.ColumnID }}">{{ col.Count or 0 }} cards</div>
+      </div>
+      <div>
+        <button class="btn btn-sm btn-outline-secondary add-to-column-btn" data-column-id="{{ col.ColumnID }}" title="Add card to {{ col.Title }}">
+          <i class="fas fa-plus"></i>
+        </button>
+      </div>
+    </div>
+
+    <div class="column-body" data-column-body-for="{{ col.ColumnID }}">
+      {# render cards for this column #}
+      {% for card in cards if card.ColumnID == col.ColumnID %}
+      <div class="kanban-card" tabindex="0" draggable="true"
+           data-card-id="{{ card.CardID }}"
+           data-column-id="{{ col.ColumnID }}"
+           data-title="{{ card.Title }}"
+           data-desc="{{ card.Description|e }}"
+           data-assignee="{{ card.AssignedEmployeeID }}"
+           data-priority="{{ card.Priority }}"
+           data-due="{{ card.DueDate }}">
+        <div class="card-title">#{{ card.CardID }} — {{ card.Title }}</div>
+        <div class="card-meta">
+          <span class="card-badge">{{ card.Priority }}</span>
+          <span class="card-badge">{{ card.CustomerName or '—' }}</span>
+          {% if card.AssignedEmployeeName %}<span class="card-badge">Assignee: {{ card.AssignedEmployeeName }}</span>{% endif %}
+          {% if card.DueDate %}<span class="card-badge">Due: {{ card.DueDate }}</span>{% endif %}
+        </div>
+        <div class="mt-2 text-end">
+          <button class="btn btn-sm btn-outline-secondary view-btn" title="View" aria-label="View card {{ card.CardID }}"><i class="fas fa-eye"></i></button>
+          <button class="btn btn-sm btn-outline-warning edit-card-btn" title="Edit" aria-label="Edit card {{ card.CardID }}"><i class="fas fa-edit"></i></button>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Create / Edit Card Modal (center pop-up) -->
+<div id="cardModalOverlay" class="custom-modal-overlay" aria-hidden="true">
+  <div class="custom-modal" role="dialog" aria-modal="true" aria-labelledby="cardModalTitle">
+    <div class="modal-header">
+      <h5 id="cardModalTitle">New Card</h5>
+    </div>
+    <div class="modal-body">
+      <form id="cardForm">
+        <input type="hidden" name="card_id" id="card_id">
+        <div class="mb-3">
+          <label class="form-label">Title</label>
+          <input class="form-control" name="title" id="card_title" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Description</label>
+          <textarea class="form-control" name="description" id="card_description" rows="4"></textarea>
+        </div>
+        <div class="row g-2">
+          <div class="col-md-6">
+            <label class="form-label">Assignee</label>
+            <select class="form-select" name="assignee" id="card_assignee">
+              <option value="">— Unassigned —</option>
+              {% for emp in employees %}
+              <option value="{{ emp.EmployeeID }}">{{ emp.Name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Priority</label>
+            <select class="form-select" name="priority" id="card_priority">
+              <option>Normal</option>
+              <option>Low</option>
+              <option>High</option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Due Date</label>
+            <input type="date" class="form-control" name="due_date" id="card_due">
+          </div>
+        </div>
+        <div class="mt-2">
+          <label class="form-label">Column</label>
+          <select class="form-select" name="column" id="card_column">
+            {% for col in columns %}
+            <option value="{{ col.ColumnID }}">{{ col.Title }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <div class="modal-actions">
+        <button class="btn btn-secondary" id="cardCancelBtn">Cancel</button>
+        <button class="btn btn-danger" id="cardDeleteBtn" style="display:none">Delete</button>
+        <button class="btn btn-primary" id="cardSaveBtn">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Delete confirmation (simple) -->
+<div id="confirmDeleteOverlay" class="custom-modal-overlay" aria-hidden="true">
+  <div class="custom-modal text-center" role="dialog" aria-modal="true">
+    <div class="modal-header"><h5>Confirm Delete</h5></div>
+    <div class="modal-body">
+      <p id="confirmDeleteText">Are you sure you want to delete this card?</p>
+    </div>
+    <div class="modal-footer">
+      <div class="modal-actions">
+        <button class="btn btn-secondary" id="cancelDeleteBtn">Cancel</button>
+        <button class="btn btn-danger" id="confirmDeleteBtn">Delete</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+
+  /* ---------- helpers ---------- */
+  function qs(selector, el=document) { return el.querySelector(selector); }
+  function qsa(selector, el=document) { return Array.from(el.querySelectorAll(selector)); }
+  function apiPost(url, data) {
+    return fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+      body: JSON.stringify(data)
+    }).then(r=>r.json());
+  }
+
+  /* --------- drag & drop --------- */
+  let draggingCard = null;
+
+  qsa('.kanban-card').forEach(card => {
+    card.addEventListener('dragstart', (e) => {
+      draggingCard = card;
+      card.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      try { e.dataTransfer.setData('text/plain', card.dataset.cardId); } catch(e){}
+    });
+    card.addEventListener('dragend', () => {
+      if (draggingCard) draggingCard.classList.remove('dragging');
+      draggingCard = null;
+      qsa('.board-column').forEach(c=>c.classList.remove('column-drop-target'));
+    });
+
+    // keyboard: Enter opens view modal
+    card.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Enter') {
+        qs('.view-btn', card).click();
+      }
+    });
+  });
+
+  qsa('.board-column').forEach(column => {
+    column.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      column.classList.add('column-drop-target');
+      e.dataTransfer.dropEffect = 'move';
+    });
+
+    column.addEventListener('dragleave', () => {
+      column.classList.remove('column-drop-target');
+    });
+
+    column.addEventListener('drop', async (e) => {
+      e.preventDefault();
+      column.classList.remove('column-drop-target');
+
+      const columnId = column.dataset.columnId;
+      // compute position as index among children
+      const body = column.querySelector('[data-column-body-for]');
+      if (!body) return;
+      if (!draggingCard) {
+        // fallback: try to read id from dataTransfer
+        const txt = e.dataTransfer.getData('text/plain');
+        draggingCard = document.querySelector(`.kanban-card[data-card-id="${txt}"]`);
+      }
+      if (!draggingCard) return;
+
+      // append to column body
+      body.appendChild(draggingCard);
+
+      // reindex positions (1-based)
+      const position = Array.from(body.children).indexOf(draggingCard) + 1;
+      const cardId = draggingCard.dataset.cardId;
+
+      // update dataset on element
+      draggingCard.dataset.columnId = columnId;
+
+      // POST update to server (adjust URL to your route)
+      try {
+        await apiPost('/jobkart/board/move', { card_id: cardId, to_column_id: columnId, position: position });
+        // update counts (optional)
+        updateColumnCounts();
+      } catch (err) {
+        console.error('Move failed', err);
+        // on failure you might want to reload or revert UI
+      }
+    });
+  });
+
+  function updateColumnCounts() {
+    qsa('.board-column').forEach(col => {
+      const colId = col.dataset.columnId;
+      const count = col.querySelectorAll('.kanban-card').length;
+      const badge = qs(`#count-${colId}`);
+      if (badge) badge.textContent = `${count} cards`;
+    });
+  }
+
+  /* --------- Create / Edit / View Card (modal) ---------- */
+  const overlay = document.getElementById('cardModalOverlay');
+  const modalTitle = document.getElementById('cardModalTitle');
+  const cardForm = document.getElementById('cardForm');
+  const cardSaveBtn = document.getElementById('cardSaveBtn');
+  const cardCancelBtn = document.getElementById('cardCancelBtn');
+  const cardDeleteBtn = document.getElementById('cardDeleteBtn');
+  const confirmDeleteOverlay = document.getElementById('confirmDeleteOverlay');
+  const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+  const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
+
+  function showCardModal(mode='new') {
+    overlay.classList.add('active');
+    overlay.setAttribute('aria-hidden','false');
+    if (mode === 'new') { modalTitle.textContent = 'New Card'; cardDeleteBtn.style.display = 'none'; }
+    else { modalTitle.textContent = 'Edit Card'; cardDeleteBtn.style.display = 'inline-block'; }
+  }
+  function hideCardModal() {
+    overlay.classList.remove('active');
+    overlay.setAttribute('aria-hidden','true');
+    cardForm.reset();
+    document.getElementById('card_id').value = '';
+  }
+
+  // open new card modal
+  document.getElementById('newCardBtn').addEventListener('click', () => {
+    // default column as the first column
+    const firstCol = document.querySelector('.board-column');
+    if (firstCol) document.getElementById('card_column').value = firstCol.dataset.columnId;
+    showCardModal('new');
+  });
+
+  // add to column quick button
+  qsa('.add-to-column-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const colId = btn.dataset.columnId;
+      document.getElementById('card_column').value = colId;
+      showCardModal('new');
+    });
+  });
+
+  // edit card button
+  qsa('.edit-card-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const cardEl = btn.closest('.kanban-card');
+      openCardInModal(cardEl);
+    });
+  });
+
+  // view button - open modal read-only? we reuse modal in edit mode
+  qsa('.view-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const cardEl = btn.closest('.kanban-card');
+      openCardInModal(cardEl);
+    });
+  });
+
+  function openCardInModal(cardEl) {
+    document.getElementById('card_id').value = cardEl.dataset.cardId;
+    document.getElementById('card_title').value = cardEl.dataset.title;
+    document.getElementById('card_description').value = cardEl.dataset.desc || '';
+    document.getElementById('card_assignee').value = cardEl.dataset.assignee || '';
+    document.getElementById('card_priority').value = cardEl.dataset.priority || 'Normal';
+    document.getElementById('card_due').value = cardEl.dataset.due || '';
+    document.getElementById('card_column').value = cardEl.dataset.columnId;
+    showCardModal('edit');
+  }
+
+  // save card (create / update)
+  cardSaveBtn.addEventListener('click', async () => {
+    const payload = {
+      card_id: document.getElementById('card_id').value || null,
+      title: document.getElementById('card_title').value,
+      description: document.getElementById('card_description').value,
+      assignee: document.getElementById('card_assignee').value || null,
+      priority: document.getElementById('card_priority').value,
+      due_date: document.getElementById('card_due').value || null,
+      column_id: document.getElementById('card_column').value
+    };
+
+    // choose endpoint
+    const endpoint = payload.card_id ? `/jobkart/board/edit/${payload.card_id}` : '/jobkart/board/create';
+
+    try {
+      const resp = await apiPost(endpoint, payload);
+      if (resp.success) {
+        // simple approach: reload page to reflect changes (safer)
+        location.reload();
+      } else {
+        alert(resp.message || 'Save failed');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Network error while saving card');
+    }
+  });
+
+  // delete via modal
+  cardDeleteBtn.addEventListener('click', () => {
+    // show confirm delete
+    confirmDeleteOverlay.classList.add('active');
+  });
+
+  cancelDeleteBtn.addEventListener('click', () => {
+    confirmDeleteOverlay.classList.remove('active');
+  });
+
+  confirmDeleteBtn.addEventListener('click', async () => {
+    const cardId = document.getElementById('card_id').value;
+    try {
+      const resp = await apiPost(`/jobkart/board/delete/${cardId}`, { card_id: cardId });
+      if (resp.success) location.reload();
+      else alert(resp.message || 'Delete failed');
+    } catch (err) { console.error(err); alert('Network error'); }
+  });
+
+  // cancel card modal
+  cardCancelBtn.addEventListener('click', hideCardModal);
+  // click outside closes
+  document.getElementById('cardModalOverlay').addEventListener('click', (e) => {
+    if (e.target.id === 'cardModalOverlay') hideCardModal();
+  });
+
+  // click outside delete modal closes
+  document.getElementById('confirmDeleteOverlay').addEventListener('click', (e) => {
+    if (e.target.id === 'confirmDeleteOverlay') confirmDeleteOverlay.classList.remove('active');
+  });
+
+  /* ------- Filters & Export ------- */
+  const searchInput = document.getElementById('boardSearch');
+  const filterAssignee = document.getElementById('filterAssignee');
+  const filterPriority = document.getElementById('filterPriority');
+
+  function applyFilters() {
+    const q = searchInput.value.trim().toLowerCase();
+    const assignee = filterAssignee.value;
+    const priority = filterPriority.value;
+
+    qsa('.kanban-card').forEach(card => {
+      let text = (card.dataset.title + ' ' + (card.dataset.desc || '') + ' ' + (card.dataset.cardId || '')).toLowerCase();
+      let match = true;
+      if (q && !text.includes(q)) match = false;
+      if (assignee && card.dataset.assignee !== assignee) match = false;
+      if (priority && card.dataset.priority !== priority) match = false;
+      card.style.display = match ? '' : 'none';
+    });
+  }
+
+  searchInput.addEventListener('input', applyFilters);
+  filterAssignee.addEventListener('change', applyFilters);
+  filterPriority.addEventListener('change', applyFilters);
+
+  // Export visible cards to CSV
+  document.getElementById('exportCsvBtn').addEventListener('click', () => {
+    const rows = [['CardID','Title','Assignee','Priority','DueDate','Column']];
+    qsa('.kanban-card').forEach(card => {
+      if (card.style.display === 'none') return;
+      rows.push([
+        card.dataset.cardId,
+        card.dataset.title,
+        (card.dataset.assigneeName || card.dataset.assignee) || '',
+        card.dataset.priority || '',
+        card.dataset.due || '',
+        card.dataset.columnId || ''
+      ]);
+    });
+    const csv = rows.map(r => r.map(cell => `"${String(cell).replace(/"/g,'""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = `kanban_export_${Date.now()}.csv`; a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  // initial count update
+  updateColumnCounts();
+});
+</script>
+{% endblock %}

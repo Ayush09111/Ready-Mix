@@ -1,0 +1,257 @@
+{% extends "base.html" %}
+
+{% block title %}Procurement - ERP System{% endblock %}
+
+{% block content %}
+<style>
+    .main-header {
+        background: linear-gradient(90deg, #198754 0%, #20c997 100%);
+        color: white;
+        padding: 2.5rem;
+        border-radius: 1rem;
+        margin-bottom: 2.5rem;
+        box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+    }
+    .table thead th, .table tbody td {
+        vertical-align: middle;
+    }
+    .custom-modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 9998;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s ease, visibility 0.3s ease;
+    }
+    .custom-modal-overlay.active {
+        opacity: 1;
+        visibility: visible;
+    }
+    .custom-modal-content {
+        background: white;
+        border-radius: 0.5rem;
+        max-width: 600px;
+        width: 90%;
+        z-index: 9999;
+        transform: scale(0.9);
+        transition: transform 0.3s ease;
+        overflow: hidden;
+    }
+    .custom-modal-overlay.active .custom-modal-content {
+        transform: scale(1);
+    }
+    .custom-modal-header, .custom-modal-footer {
+        padding: 1rem 1.5rem;
+        background-color: #f7f7f7;
+    }
+    .custom-modal-body {
+        padding: 1.5rem;
+    }
+    .modal-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 1rem;
+    }
+</style>
+
+<!-- Header -->
+<div class="main-header">
+    <h2><i class="fas fa-shopping-cart me-2"></i> Procurement Management</h2>
+    <p class="lead mb-0">Manage purchase requests, supplier orders, and track procurement status.</p>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Purchase Orders</h5>
+                <button class="btn btn-success" id="addProcurementBtn">
+                    <i class="fas fa-plus me-2"></i>New Purchase Order
+                </button>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>PO ID</th>
+                                <th>Supplier</th>
+                                <th>Material</th>
+                                <th>Quantity</th>
+                                <th>Cost</th>
+                                <th>Status</th>
+                                <th>Order Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for po in purchase_orders %}
+                            <tr>
+                                <td>{{ po.POID }}</td>
+                                <td>{{ po.SupplierName }}</td>
+                                <td>{{ po.Material }}</td>
+                                <td>{{ po.Quantity }}</td>
+                                <td>₹{{ po.Cost }}</td>
+                                <td>
+                                    <span class="badge bg-{% if po.Status == 'Pending' %}warning{% elif po.Status == 'Approved' %}success{% else %}secondary{% endif %}">
+                                        {{ po.Status }}
+                                    </span>
+                                </td>
+                                <td>{{ po.OrderDate }}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary edit-btn" 
+                                            data-id="{{ po.POID }}"
+                                            data-supplier="{{ po.SupplierID }}"
+                                            data-material="{{ po.Material }}"
+                                            data-quantity="{{ po.Quantity }}"
+                                            data-cost="{{ po.Cost }}"
+                                            data-status="{{ po.Status }}">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger delete-btn" 
+                                            data-id="{{ po.POID }}">
+                                        <i class="fas fa-trash"></i> Delete
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add/Edit Procurement Modal -->
+<div id="procurementModal" class="custom-modal-overlay">
+    <div class="custom-modal-content">
+        <div class="custom-modal-header">
+            <h5 class="modal-title" id="modalTitle">Add New Purchase Order</h5>
+        </div>
+        <div class="custom-modal-body">
+            <form id="procurementForm" method="POST" action="{{ url_for('erp_procurement') }}">
+                <div class="mb-3">
+                    <label for="supplierId" class="form-label">Supplier</label>
+                    <select class="form-select" name="supplier_id" id="supplierId" required>
+                        <option value="">Select a supplier</option>
+                        {% for supplier in suppliers %}
+                        <option value="{{ supplier.SupplierID }}">{{ supplier.Name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="material" class="form-label">Material</label>
+                    <input type="text" class="form-control" name="material" id="material" required>
+                </div>
+                <div class="mb-3">
+                    <label for="quantity" class="form-label">Quantity</label>
+                    <input type="number" class="form-control" name="quantity" id="quantity" required>
+                </div>
+                <div class="mb-3">
+                    <label for="cost" class="form-label">Cost</label>
+                    <input type="number" class="form-control" name="cost" id="cost" required>
+                </div>
+                <div class="mb-3">
+                    <label for="status" class="form-label">Status</label>
+                    <select class="form-select" name="status" id="status">
+                        <option value="Pending">Pending</option>
+                        <option value="Approved">Approved</option>
+                        <option value="Completed">Completed</option>
+                    </select>
+                </div>
+            </form>
+        </div>
+        <div class="custom-modal-footer">
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" id="cancelBtn">Cancel</button>
+                <button type="submit" form="procurementForm" class="btn btn-success">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div id="deleteModal" class="custom-modal-overlay">
+    <div class="custom-modal-content" style="max-width: 500px; text-align: center;">
+        <h5 class="modal-title">Confirm Deletion</h5>
+        <hr>
+        <p id="deleteModalText" class="my-4"></p>
+        <div class="modal-actions">
+            <button type="button" class="btn btn-secondary" id="cancelDeleteBtn">Cancel</button>
+            <form id="deleteForm" method="POST">
+                <button type="submit" class="btn btn-danger">Delete</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const procurementModal = document.getElementById('procurementModal');
+    const addProcurementBtn = document.getElementById('addProcurementBtn');
+    const cancelBtn = document.getElementById('cancelBtn');
+    const procurementForm = document.getElementById('procurementForm');
+    const modalTitle = document.getElementById('modalTitle');
+
+    function showProcurementModal() { procurementModal.classList.add('active'); }
+    function hideProcurementModal() { procurementModal.classList.remove('active'); }
+
+    addProcurementBtn.addEventListener('click', function() {
+        procurementForm.reset();
+        procurementForm.action = "{{ url_for('erp_procurement') }}";
+        modalTitle.textContent = "Add New Purchase Order";
+        showProcurementModal();
+    });
+
+    cancelBtn.addEventListener('click', hideProcurementModal);
+    procurementModal.addEventListener('click', function(e) { if(e.target === this) hideProcurementModal(); });
+
+    // --- Edit Modal ---
+    document.querySelectorAll('.edit-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const poId = this.dataset.id;
+            document.getElementById('supplierId').value = this.dataset.supplier;
+            document.getElementById('material').value = this.dataset.material;
+            document.getElementById('quantity').value = this.dataset.quantity;
+            document.getElementById('cost').value = this.dataset.cost;
+            document.getElementById('status').value = this.dataset.status;
+
+            procurementForm.action = `/erp/procurement/edit/${poId}`;
+            modalTitle.textContent = "Edit Purchase Order";
+            showProcurementModal();
+        });
+    });
+
+    // --- Delete Modal ---
+    const deleteModal = document.getElementById('deleteModal');
+    const deleteModalText = document.getElementById('deleteModalText');
+    const deleteForm = document.getElementById('deleteForm');
+    const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
+
+    function showDeleteModal() { deleteModal.classList.add('active'); }
+    function hideDeleteModal() { deleteModal.classList.remove('active'); }
+
+    document.querySelectorAll('.delete-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const poId = this.dataset.id;
+            deleteModalText.innerHTML = `Are you sure you want to delete Purchase Order <strong>#${poId}</strong>?`;
+            deleteForm.action = `/erp/procurement/delete/${poId}`;
+            showDeleteModal();
+        });
+    });
+
+    cancelDeleteBtn.addEventListener('click', hideDeleteModal);
+    deleteModal.addEventListener('click', function(e) { if(e.target === this) hideDeleteModal(); });
+});
+</script>
+{% endblock %}
