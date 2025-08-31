@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block title %}Quality Control for Batch #{{ batch.BatchID }}{% endblock %}
+
+{% block content %}
+<style>
+    .details-card .card-header {
+        background-color: #e9ecef;
+        font-weight: 600;
+    }
+</style>
+
+<div class="row">
+    <div class="col-12">
+        <h2><i class="fas fa-check-circle"></i> Quality Control: Batch #{{ batch.BatchID }}</h2>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('erp_production') }}">Production Management</a></li>
+                <li class="breadcrumb-item active">Quality Control</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>Existing QC Records</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Test Type</th>
+                                <th>Result</th>
+                                <th>Tested By</th>
+                                <th>Date</th>
+                                <th>Remarks</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for qc in qc_records %}
+                            <tr>
+                                <td>{{ qc.TestType }}</td>
+                                <td>{{ qc.Result }}</td>
+                                <td>{{ qc.TestedBy }}</td>
+                                <td>{{ qc.TestDate }}</td>
+                                <td>{{ qc.Remarks }}</td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="5" class="text-center text-muted">No quality control records found for this batch.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h5>Add New QC Record</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="test_type" class="form-label">Test Type</label>
+                        <input type="text" class="form-control" name="test_type" required placeholder="e.g., Slump Test">
+                    </div>
+                    <div class="mb-3">
+                        <label for="result" class="form-label">Result</label>
+                        <input type="text" class="form-control" name="result" required placeholder="e.g., Pass - 75mm">
+                    </div>
+                     <div class="mb-3">
+                        <label for="remarks" class="form-label">Remarks</label>
+                        <textarea class="form-control" name="remarks" rows="3"></textarea>
+                    </div>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-success"><i class="fas fa-plus me-2"></i>Add Record</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

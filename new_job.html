@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block title %}New Job Card - Job Kart System{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2><i class="fas fa-plus"></i> Create New Job Card</h2>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('jobkart_jobs') }}">Job Cards</a></li>
+                <li class="breadcrumb-item active">New Job Card</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5>Job Card Details</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="related_order" class="form-label">Related Order (Optional)</label>
+                            <select class="form-select" name="related_order">
+                                <option value="">Select Order (Optional)</option>
+                                {% for order in orders %}
+                                <option value="{{ order.OrderID }}">Order #{{ order.OrderID }} - {{ order.CustomerName }} ({{ order.ProductName }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="job_type" class="form-label">Job Type</label>
+                            <select class="form-select" name="job_type" required>
+                                <option value="">Select Job Type</option>
+                                <option value="Delivery">Delivery</option>
+                                <option value="Production">Production</option>
+                                <option value="Maintenance">Maintenance</option>
+                                <option value="Quality Control">Quality Control</option>
+                                <option value="Inspection">Inspection</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea class="form-control" name="description" rows="3" required placeholder="Detailed description of the job"></textarea>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="assigned_to" class="form-label">Assign To</label>
+                            <select class="form-select" name="assigned_to" required>
+                                <option value="">Select Employee</option>
+                                {% for employee in employees %}
+                                <option value="{{ employee.EmployeeID }}">{{ employee.Name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="priority" class="form-label">Priority</label>
+                            <select class="form-select" name="priority" required>
+                                <option value="">Select Priority</option>
+                                <option value="Low">Low</option>
+                                <option value="Medium">Medium</option>
+                                <option value="High">High</option>
+                                <option value="Critical">Critical</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="scheduled_start" class="form-label">Scheduled Start</label>
+                            <input type="datetime-local" class="form-control" name="scheduled_start" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="scheduled_end" class="form-label">Scheduled End</label>
+                            <input type="datetime-local" class="form-control" name="scheduled_end" required>
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('jobkart_jobs') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Back to Job Cards
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Create Job Card
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

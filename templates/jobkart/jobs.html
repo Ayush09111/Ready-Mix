@@ -1,0 +1,357 @@
+{% extends "base.html" %}
+
+{% block title %}Job Cards - Job Kart System{% endblock %}
+
+{% block content %}
+<style>
+    .main-header {
+        background: linear-gradient(90deg, #6f42c1 0%, #d63384 100%);
+        color: white;
+        padding: 2.5rem;
+        border-radius: 1rem;
+        margin-bottom: 2.5rem;
+        box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+    }
+    .table thead th, .table tbody td {
+        vertical-align: middle;
+    }
+    /* --- Custom Modal Styles --- */
+    .custom-modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 9998;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s ease, visibility 0.3s ease;
+    }
+    .custom-modal-overlay.active {
+        opacity: 1;
+        visibility: visible;
+    }
+    .custom-modal-content {
+        background: white;
+        border-radius: 0.5rem;
+        max-width: 800px;
+        width: 90%;
+        z-index: 9999;
+        transform: scale(0.9);
+        transition: transform 0.3s ease;
+        overflow: hidden;
+    }
+    .custom-modal-overlay.active .custom-modal-content {
+        transform: scale(1);
+    }
+    .custom-modal-header, .custom-modal-footer {
+        padding: 1rem 1.5rem;
+        background-color: #f7f7f7;
+    }
+    .custom-modal-body {
+        padding: 1.5rem;
+    }
+    .modal-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 1rem;
+    }
+    .delete-modal-content {
+        max-width: 500px;
+        text-align: center;
+    }
+</style>
+
+<!-- Header -->
+<div class="main-header">
+    <h2><i class="fas fa-clipboard-list me-2"></i> Job Cards Management</h2>
+    <p class="lead mb-0">Track and manage all operational tasks and assignments.</p>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">All Job Cards</h5>
+                <button id="newJobBtn" class="btn btn-primary">
+                    <i class="fas fa-plus me-2"></i> New Job Card
+                </button>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Job ID</th>
+                                <th>Related Order</th>
+                                <th>Job Type</th>
+                                <th>Description</th>
+                                <th>Assigned To</th>
+                                <th>Priority</th>
+                                <th>Scheduled Start</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for job in jobs %}
+                            <tr>
+                                <td><strong>#{{ job.JobCardID }}</strong></td>
+                                <td>
+                                    {% if job.RelatedOrderID %}
+                                        <a href="{{ url_for('erp_view_order', order_id=job.RelatedOrderID) }}" class="badge bg-info text-decoration-none">
+                                            Order #{{ job.RelatedOrderID }}
+                                        </a>
+                                    {% else %}
+                                        <span class="text-muted">N/A</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ job.JobType }}</td>
+                                <td>{{ job.Description[:50] }}{% if job.Description|length > 50 %}...{% endif %}</td>
+                                <td>{{ job.AssignedTo or 'Unassigned' }}</td>
+                                <td>
+                                    <span class="badge bg-{% if job.Priority == 'High' %}danger{% elif job.Priority == 'Medium' %}warning{% else %}secondary{% endif %}">
+                                        {{ job.Priority }}
+                                    </span>
+                                </td>
+                                <td>{{ job.ScheduledStart }}</td>
+                                <td>
+                                    <span class="badge bg-{% if job.Status == 'Open' %}warning{% elif job.Status == 'Completed' %}success{% elif job.Status == 'In Progress' %}primary{% else %}secondary{% endif %}">
+                                        {{ job.Status }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <a href="{{ url_for('jobkart_job_detail', job_id=job.JobCardID) }}" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-eye"></i> View
+                                    </a>
+                                    <div class="btn-group" role="group">
+                                        <button type="button" class="btn btn-sm btn-outline-success dropdown-toggle" data-bs-toggle="dropdown">
+                                            Status
+                                        </button>
+                                        <ul class="dropdown-menu">
+                                            <li><a class="dropdown-item status-update-btn" href="#" data-job-id="{{ job.JobCardID }}" data-status="In Progress">In Progress</a></li>
+                                            <li><a class="dropdown-item status-update-btn" href="#" data-job-id="{{ job.JobCardID }}" data-status="Completed">Completed</a></li>
+                                            <li><a class="dropdown-item status-update-btn" href="#" data-job-id="{{ job.JobCardID }}" data-status="Cancelled">Cancelled</a></li>
+                                        </ul>
+                                    </div>
+                                    <button class="btn btn-sm btn-outline-danger delete-btn" 
+                                            data-id="{{ job.JobCardID }}" 
+                                            data-description="{{ job.JobType }}">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Custom New Job Card Modal -->
+<div id="newJobModal" class="custom-modal-overlay">
+    <div class="custom-modal-content">
+        <div class="custom-modal-header">
+            <h5 class="modal-title">Create New Job Card</h5>
+        </div>
+        <div class="custom-modal-body">
+            <form id="newJobForm" method="POST" action="{{ url_for('jobkart_new_job') }}">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="job_type" class="form-label">Job Type</label>
+                        <input type="text" class="form-control" name="job_type" required placeholder="e.g., Delivery, Maintenance">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="priority" class="form-label">Priority</label>
+                        <select class="form-select" name="priority" required>
+                            <option>Medium</option>
+                            <option>High</option>
+                            <option>Low</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label for="description" class="form-label">Description</label>
+                    <textarea class="form-control" name="description" rows="3" required></textarea>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="assigned_to" class="form-label">Assign To</label>
+                        <select class="form-select" name="assigned_to" required>
+                            <option value="">Select Employee</option>
+                            {% for employee in employees %}
+                            <option value="{{ employee.EmployeeID }}">{{ employee.Name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="related_order" class="form-label">Related Order (Optional)</label>
+                        <select class="form-select" name="related_order">
+                            <option value="">None</option>
+                            {% for order in orders %}
+                            <option value="{{ order.OrderID }}">Order #{{ order.OrderID }} - {{ order.CustomerName }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="scheduled_start" class="form-label">Scheduled Start</label>
+                        <input type="datetime-local" class="form-control" name="scheduled_start" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="scheduled_end" class="form-label">Scheduled End</label>
+                        <input type="datetime-local" class="form-control" name="scheduled_end" required>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="custom-modal-footer">
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" id="cancelNewJobBtn">Cancel</button>
+                <button type="submit" form="newJobForm" class="btn btn-primary">Create Job Card</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Custom Status Update Modal -->
+<div id="statusModal" class="custom-modal-overlay">
+    <div class="custom-modal-content" style="max-width: 500px;">
+        <div class="custom-modal-header">
+            <h5 class="modal-title" id="statusModalTitle">Update Job Status</h5>
+        </div>
+        <div class="custom-modal-body">
+            <form id="statusForm">
+                <input type="hidden" id="jobIdInput">
+                <input type="hidden" id="statusInput">
+                <div class="mb-3">
+                    <label for="notesInput" class="form-label">Add Notes (Optional)</label>
+                    <textarea class="form-control" id="notesInput" rows="3"></textarea>
+                </div>
+            </form>
+        </div>
+        <div class="custom-modal-footer">
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" id="cancelStatusBtn">Cancel</button>
+                <button type="button" class="btn btn-primary" id="saveStatusBtn">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Custom Delete Confirmation Modal -->
+<div id="deleteModal" class="custom-modal-overlay">
+    <div class="custom-modal-content delete-modal-content">
+        <h5 class="modal-title">Confirm Deletion</h5>
+        <hr>
+        <p id="deleteModalText" class="my-4"></p>
+        <div class="modal-actions">
+            <button type="button" class="btn btn-secondary" id="cancelDeleteBtn">Cancel</button>
+            <form id="deleteForm" method="POST">
+                <button type="submit" class="btn btn-danger">Delete Job Card</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // --- New Job Modal Logic ---
+    const newJobModal = document.getElementById('newJobModal');
+    const newJobBtn = document.getElementById('newJobBtn');
+    const cancelNewJobBtn = document.getElementById('cancelNewJobBtn');
+
+    function showNewJobModal() { newJobModal.classList.add('active'); }
+    function hideNewJobModal() { newJobModal.classList.remove('active'); }
+    
+    newJobBtn.addEventListener('click', showNewJobModal);
+    cancelNewJobBtn.addEventListener('click', hideNewJobModal);
+    newJobModal.addEventListener('click', function(e) { if(e.target === this) hideNewJobModal(); });
+
+    // --- Status Update Modal Logic ---
+    const statusModal = document.getElementById('statusModal');
+    const statusModalTitle = document.getElementById('statusModalTitle');
+    const jobIdInput = document.getElementById('jobIdInput');
+    const statusInput = document.getElementById('statusInput');
+    const notesInput = document.getElementById('notesInput');
+    const saveStatusBtn = document.getElementById('saveStatusBtn');
+    const cancelStatusBtn = document.getElementById('cancelStatusBtn');
+
+    function showStatusModal(jobId, status) {
+        jobIdInput.value = jobId;
+        statusInput.value = status;
+        notesInput.value = '';
+        statusModalTitle.textContent = `Update Status to "${status}" for Job #${jobId}`;
+        statusModal.classList.add('active');
+    }
+
+    function hideStatusModal() {
+        statusModal.classList.remove('active');
+    }
+
+    document.querySelectorAll('.status-update-btn').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            const jobId = this.dataset.jobId;
+            const status = this.dataset.status;
+            showStatusModal(jobId, status);
+        });
+    });
+
+    saveStatusBtn.addEventListener('click', function() {
+        const jobId = jobIdInput.value;
+        const status = statusInput.value;
+        const notes = notesInput.value;
+
+        fetch('/api/update_job_status', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({job_id: jobId, status: status, notes: notes})
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Failed to update status');
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    });
+
+    cancelStatusBtn.addEventListener('click', hideStatusModal);
+    statusModal.addEventListener('click', function(e) { if (e.target === this) hideStatusModal(); });
+
+    // --- Delete Job Modal Logic ---
+    const deleteModal = document.getElementById('deleteModal');
+    const deleteModalText = document.getElementById('deleteModalText');
+    const deleteForm = document.getElementById('deleteForm');
+    const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
+
+    function showDeleteModal() { deleteModal.classList.add('active'); }
+    function hideDeleteModal() { deleteModal.classList.remove('active'); }
+
+    document.querySelectorAll('.delete-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const jobId = this.dataset.id;
+            const jobDesc = this.dataset.description;
+            deleteModalText.innerHTML = `Are you sure you want to delete Job Card #${jobId} (<strong>${jobDesc}</strong>)? This action cannot be undone.`;
+            deleteForm.action = `/jobkart/jobs/delete/${jobId}`;
+            showDeleteModal();
+        });
+    });
+
+    cancelDeleteBtn.addEventListener('click', hideDeleteModal);
+    deleteModal.addEventListener('click', function(e) { if(e.target === this) hideDeleteModal(); });
+});
+</script>
+{% endblock %}

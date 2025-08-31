@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+
+{% block title %}Production Management - ERP System{% endblock %}
+
+{% block content %}
+<style>
+    /* Custom styles for the themed production page */
+    body {
+        /* A subtle, professional blueprint background pattern */
+        background-color: #f8f9fa;
+        background-image: 
+            linear-gradient(rgba(233, 238, 247, 0.95), rgba(233, 238, 247, 0.95)),
+            url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Cg fill='%23dce4f2' fill-opacity='0.4'%3E%3Crect x='0' y='0' width='100' height='1'/%3E%3Crect x='0' y='0' width='1' height='100'/%3E%3C/g%3E%3C/svg%3E");
+    }
+
+    .main-header {
+        background: linear-gradient(90deg, #6f42c1 0%, #d63384 100%); /* Purple/Pink gradient for production */
+        color: white;
+        padding: 2.5rem;
+        border-radius: 1rem;
+        margin-bottom: 2.5rem;
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+    }
+    .main-header h2 {
+        font-weight: 700;
+    }
+    
+    .table thead th {
+        vertical-align: middle;
+        font-weight: 600;
+    }
+
+    .table tbody td {
+        vertical-align: middle;
+    }
+
+    .action-buttons a, .action-buttons button {
+        margin: 0 2px;
+    }
+    
+    .search-bar {
+        position: relative;
+    }
+    .search-bar .fa-search {
+        position: absolute;
+        left: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #6c757d;
+    }
+    .search-bar .form-control {
+        padding-left: 2.5rem;
+    }
+</style>
+
+<!-- Header -->
+<div class="main-header">
+    <h2><i class="fas fa-industry me-2"></i> Production Management</h2>
+    <p class="lead mb-0">Monitor batching operations and production schedules in real-time.</p>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Production Batches</h5>
+                <a href="{{ url_for('erp_new_batch') }}" class="btn btn-primary"><i class="fas fa-plus me-2"></i>New Batch</a>
+            </div>
+            <div class="card-body">
+                <div class="mb-3 search-bar">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="batchSearch" class="form-control" placeholder="Search by batch ID, customer, product, or status...">
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Batch ID</th>
+                                <th>Order ID</th>
+                                <th>Customer</th>
+                                <th>Product</th>
+                                <th>Quantity</th>
+                                <th>Location</th>
+                                <th>Status</th>
+                                <th class="text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="batchesTableBody">
+                            {% for batch in batches %}
+                            <tr>
+                                <td><strong>#{{ batch.BatchID }}</strong></td>
+                                <td><a href="{{ url_for('erp_view_order', order_id=batch.OrderID) }}">#{{ batch.OrderID or 'N/A' }}</a></td>
+                                <td>{{ batch.CustomerName or 'N/A' }}</td>
+                                <td>{{ batch.ProductName or 'N/A' }}</td>
+                                <td>{{ batch.QuantityBatch }}</td>
+                                <td>{{ batch.LocationName or 'N/A' }}</td>
+                                <td>
+                                    <span class="badge bg-{% if batch.Status == 'Completed' %}success{% elif batch.Status == 'In Progress' %}primary{% elif batch.Status == 'Scheduled' %}warning text-dark{% else %}secondary{% endif %}">
+                                        {{ batch.Status }}
+                                    </span>
+                                </td>
+                                <td class="text-center action-buttons">
+                                    <a href="{{ url_for('erp_view_batch', batch_id=batch.BatchID) }}" class="btn btn-sm btn-outline-info" data-bs-toggle="tooltip" title="View Details"><i class="fas fa-eye"></i></a>
+                                    <a href="{{ url_for('erp_quality_control', batch_id=batch.BatchID) }}" class="btn btn-sm btn-outline-success" data-bs-toggle="tooltip" title="Quality Control"><i class="fas fa-check-circle"></i></a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // --- Live Search Functionality ---
+    const searchInput = document.getElementById('batchSearch');
+    const tableBody = document.getElementById('batchesTableBody');
+    const tableRows = tableBody.getElementsByTagName('tr');
+
+    searchInput.addEventListener('keyup', function() {
+        const filter = searchInput.value.toLowerCase();
+        
+        for (let i = 0; i < tableRows.length; i++) {
+            let row = tableRows[i];
+            let cells = row.getElementsByTagName('td');
+            let match = false;
+            for (let j = 0; j < cells.length; j++) {
+                if (cells[j]) {
+                    if (cells[j].textContent.toLowerCase().indexOf(filter) > -1) {
+                        match = true;
+                        break;
+                    }
+                }
+            }
+            if (match) {
+                row.style.display = "";
+            } else {
+                row.style.display = "none";
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

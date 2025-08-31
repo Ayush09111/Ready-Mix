@@ -1,0 +1,344 @@
+{% extends "base.html" %}
+
+{% block title %}Inventory Management - ERP System{% endblock %}
+
+{% block content %}
+<style>
+    /* Custom styles for the themed inventory page */
+    body {
+        background-color: #f8f9fa;
+        background-image: 
+            linear-gradient(rgba(233, 238, 247, 0.95), rgba(233, 238, 247, 0.95)),
+            url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Cg fill='%23dce4f2' fill-opacity='0.4'%3E%3Crect x='0' y='0' width='100' height='1'/%3E%3Crect x='0' y='0' width='1' height='100'/%3E%3C/g%3E%3C/svg%3E");
+    }
+
+    .main-header {
+        background: linear-gradient(90deg, #198754 0%, #20c997 100%); /* Green gradient for inventory */
+        color: white;
+        padding: 2.5rem;
+        border-radius: 1rem;
+        margin-bottom: 2.5rem;
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+    }
+    .main-header h2 {
+        font-weight: 700;
+    }
+
+    .card-header .btn {
+        float: right;
+    }
+
+    .progress {
+        height: 1.25rem;
+        font-size: 0.75rem;
+        border-radius: 0.5rem;
+        background-color: #e9ecef;
+    }
+    
+    .table thead th {
+        vertical-align: middle;
+    }
+
+    .table tbody td {
+        vertical-align: middle;
+    }
+
+    .stock-level {
+        min-width: 150px;
+    }
+
+    /* --- Custom Modal Styles --- */
+    .custom-modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 9998;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s ease, visibility 0.3s ease;
+    }
+    .custom-modal-overlay.active {
+        opacity: 1;
+        visibility: visible;
+    }
+    .custom-modal-content {
+        background: white;
+        border-radius: 0.5rem;
+        max-width: 800px; /* Wider for this form */
+        width: 90%;
+        z-index: 9999;
+        transform: scale(0.9);
+        transition: transform 0.3s ease;
+        overflow: hidden; /* Prevents content from spilling out */
+    }
+    .custom-modal-overlay.active .custom-modal-content {
+        transform: scale(1);
+    }
+    .custom-modal-header, .custom-modal-footer {
+        padding: 1rem 1.5rem;
+        background-color: #f7f7f7;
+    }
+    .custom-modal-body {
+        padding: 1.5rem;
+    }
+    .modal-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 1rem;
+    }
+</style>
+
+<!-- Header -->
+<div class="main-header">
+    <h2><i class="fas fa-boxes me-2"></i> Inventory Management</h2>
+    <p class="lead mb-0">Track and manage raw material stock levels in real-time.</p>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="d-inline-block">All Materials</h5>
+                <button class="btn btn-success" id="add-material-btn"><i class="fas fa-plus me-2"></i>Add New Material</button>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>ID</th>
+                                <th>Material Name</th>
+                                <th>Supplier</th>
+                                <th class="text-center">Stock Level</th>
+                                <th>Status</th>
+                                <th>Last Updated</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in inventory %}
+                            <tr>
+                                <td><strong>{{ item.MaterialID }}</strong></td>
+                                <td>{{ item.MaterialName }}</td>
+                                <td>{{ item.SupplierName or 'N/A' }}</td>
+                                <td class="stock-level">
+                                    {# FIX: Check if Threshold is not None before comparing #}
+                                    {% set max_capacity = item.Threshold * 10 if item.Threshold and item.Threshold > 0 else (item.CurrentStock or 0) * 1.2 %}
+                                    {% set stock_percentage = ((item.CurrentStock or 0) / max_capacity) * 100 if max_capacity > 0 else 0 %}
+                                    
+                                    {% if item.StockStatus == 'Low Stock' %}
+                                        {% set stock_level_color = 'danger' %}
+                                    {% elif item.Threshold and item.CurrentStock and item.CurrentStock <= item.Threshold * 1.5 %}
+                                        {% set stock_level_color = 'warning' %}
+                                    {% else %}
+                                        {% set stock_level_color = 'success' %}
+                                    {% endif %}
+
+                                    <div class="progress" data-bs-toggle="tooltip" title="Stock: {{ (item.CurrentStock or 0) | round(1) }} / Max (Est.): {{ max_capacity | round(1) }} {{ item.Unit }}">
+                                        <div class="progress-bar bg-{{ stock_level_color }}" role="progressbar" style="width: {{ stock_percentage | round }}%;" aria-valuenow="{{ item.CurrentStock or 0 }}" aria-valuemin="0" aria-valuemax="{{ max_capacity }}">
+                                            {{ (item.CurrentStock or 0) | round(1) }} {{ item.Unit }}
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-{% if item.StockStatus == 'Low Stock' %}danger{% else %}success{% endif %}">
+                                        {{ item.StockStatus }}
+                                    </span>
+                                </td>
+                                <td>{{ item.LastUpdated }}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-secondary edit-btn" 
+                                            data-id="{{ item.MaterialID }}"
+                                            data-name="{{ item.MaterialName }}"
+                                            data-stock="{{ item.CurrentStock }}"
+                                            data-unit="{{ item.Unit }}"
+                                            data-threshold="{{ item.Threshold }}"
+                                            data-supplier="{{ item.SupplierID }}">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    {% if item.StockStatus == 'Low Stock' %}
+                                    <button class="btn btn-sm btn-outline-warning reorder-btn"
+                                            data-name="{{ item.MaterialName }}"
+                                            data-supplier-name="{{ item.SupplierName or 'N/A' }}"
+                                            data-supplier-id="{{ item.SupplierID }}">
+                                        <i class="fas fa-shopping-cart"></i>
+                                    </button>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Custom Add/Edit Inventory Modal -->
+<div id="inventoryModal" class="custom-modal-overlay">
+    <div class="custom-modal-content">
+        <div class="custom-modal-header">
+            <h5 class="modal-title" id="modalTitle">Add New Material</h5>
+        </div>
+        <div class="custom-modal-body">
+            <form id="inventoryForm" method="POST">
+                <input type="hidden" id="materialId" name="materialId">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="materialName" class="form-label">Material Name</label>
+                        <input type="text" class="form-control" id="materialName" name="materialName" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="supplierId" class="form-label">Supplier</label>
+                        <select class="form-select" id="supplierId" name="supplierId">
+                            <option value="">Select a supplier</option>
+                            {% for supplier in suppliers %}
+                            <option value="{{ supplier.SupplierID }}">{{ supplier.SupplierName }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label for="currentStock" class="form-label">Current Stock</label>
+                        <input type="number" step="0.01" class="form-control" id="currentStock" name="currentStock" required>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="unit" class="form-label">Unit (e.g., kg, liters)</label>
+                        <input type="text" class="form-control" id="unit" name="unit" required>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="threshold" class="form-label">Re-order Threshold</label>
+                        <input type="number" step="0.01" class="form-control" id="threshold" name="threshold" required>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="custom-modal-footer">
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" id="cancelBtn">Close</button>
+                <button type="submit" form="inventoryForm" class="btn btn-primary">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Custom Purchase Order Modal -->
+<div id="purchaseOrderModal" class="custom-modal-overlay">
+    <div class="custom-modal-content">
+        <div class="custom-modal-header">
+            <h5 class="modal-title">Create Purchase Order</h5>
+        </div>
+        <div class="custom-modal-body">
+            <form id="purchaseOrderForm" method="POST"> <!-- You will need a new route for this -->
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Material</label>
+                        <input type="text" class="form-control" id="poMaterialName" readonly>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Supplier</label>
+                        <input type="text" class="form-control" id="poSupplierName" readonly>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="poQuantity" class="form-label">Quantity to Order</label>
+                        <input type="number" class="form-control" id="poQuantity" name="quantity" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="poDeliveryDate" class="form-label">Expected Delivery Date</label>
+                        <input type="date" class="form-control" id="poDeliveryDate" name="deliveryDate" required>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="custom-modal-footer">
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" id="cancelPoBtn">Cancel</button>
+                <button type="submit" form="purchaseOrderForm" class="btn btn-warning">Submit Purchase Order</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const inventoryModal = document.getElementById('inventoryModal');
+    const modalTitle = document.getElementById('modalTitle');
+    const inventoryForm = document.getElementById('inventoryForm');
+    const materialIdInput = document.getElementById('materialId');
+    const cancelBtn = document.getElementById('cancelBtn');
+
+    const poModal = document.getElementById('purchaseOrderModal');
+    const cancelPoBtn = document.getElementById('cancelPoBtn');
+
+    // --- Add/Edit Modal Logic ---
+    function showInventoryModal() { inventoryModal.classList.add('active'); }
+    function hideInventoryModal() { inventoryModal.classList.remove('active'); }
+
+    document.getElementById('add-material-btn').addEventListener('click', function() {
+        modalTitle.textContent = 'Add New Material';
+        inventoryForm.action = "{{ url_for('erp_inventory') }}"; 
+        inventoryForm.reset();
+        materialIdInput.value = '';
+        showInventoryModal();
+    });
+
+    document.querySelectorAll('.edit-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            modalTitle.textContent = 'Edit Material';
+            inventoryForm.action = "{{ url_for('erp_inventory') }}";
+            materialIdInput.value = this.dataset.id;
+            document.getElementById('materialName').value = this.dataset.name;
+            document.getElementById('currentStock').value = this.dataset.stock;
+            document.getElementById('unit').value = this.dataset.unit;
+            document.getElementById('threshold').value = this.dataset.threshold;
+            document.getElementById('supplierId').value = this.dataset.supplier;
+            showInventoryModal();
+        });
+    });
+
+    cancelBtn.addEventListener('click', hideInventoryModal);
+    inventoryModal.addEventListener('click', function(event) {
+        if (event.target === this) {
+            hideInventoryModal();
+        }
+    });
+
+    // --- Purchase Order Modal Logic ---
+    function showPoModal() { poModal.classList.add('active'); }
+    function hidePoModal() { poModal.classList.remove('active'); }
+
+    document.querySelectorAll('.reorder-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const materialName = this.dataset.name;
+            const supplierName = this.dataset.supplierName;
+            
+            document.getElementById('poMaterialName').value = materialName;
+            document.getElementById('poSupplierName').value = supplierName;
+            // You would set the action to a new route like url_for('create_purchase_order')
+            // document.getElementById('purchaseOrderForm').action = ...; 
+
+            showPoModal();
+        });
+    });
+
+    cancelPoBtn.addEventListener('click', hidePoModal);
+    poModal.addEventListener('click', function(event) {
+        if (event.target === this) {
+            hidePoModal();
+        }
+    });
+});
+</script>
+{% endblock %}

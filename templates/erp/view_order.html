@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+
+{% block title %}Order #{{ order.OrderID }} Details - ERP System{% endblock %}
+
+{% block content %}
+<style>
+    .details-card .card-header {
+        background-color: #e9ecef;
+        font-weight: 600;
+    }
+    .details-list-group .list-group-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem 1.25rem;
+    }
+    .details-list-group .list-group-item strong {
+        color: #495057;
+    }
+    .text-end {
+        text-align: right;
+    }
+</style>
+
+<div class="row">
+    <div class="col-12">
+        <h2><i class="fas fa-file-invoice"></i> Order Details: #{{ order.OrderID }}</h2>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('erp_orders') }}">Order Management</a></li>
+                <li class="breadcrumb-item active">Order #{{ order.OrderID }}</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Order Information -->
+    <div class="col-lg-8 mb-4">
+        <div class="card details-card h-100">
+            <div class="card-header">
+                Order Information
+            </div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush details-list-group">
+                    <li class="list-group-item">
+                        <strong>Order ID:</strong>
+                        <span>#{{ order.OrderID }}</span>
+                    </li>
+                    <li class="list-group-item">
+                        <strong>Product:</strong>
+                        <span>{{ order.ProductName }} ({{ order.MixDesign }})</span>
+                    </li>
+                    <li class="list-group-item">
+                        <strong>Quantity:</strong>
+                        <span>{{ order.Quantity }} {{ order.Unit or 'cubic meters' }}</span>
+                    </li>
+                    <li class="list-group-item">
+                        <strong>Delivery Site:</strong>
+                        <span class="text-end">{{ order.DeliverySite }}</span>
+                    </li>
+                     <li class="list-group-item">
+                        <strong>Order Date:</strong>
+                        <span>{{ order.OrderDate }}</span>
+                    </li>
+                    <li class="list-group-item">
+                        <strong>Scheduled Date:</strong>
+                        <span>{{ order.ScheduledDate }}</span>
+                    </li>
+                    <li class="list-group-item">
+                        <strong>Status:</strong>
+                        <span class="badge bg-{% if order.Status == 'Confirmed' %}warning text-dark{% elif order.Status == 'Delivered' %}success{% elif order.Status == 'In Production' %}primary{% else %}secondary{% endif %} fs-6">
+                            {{ order.Status }}
+                        </span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <!-- Customer Information -->
+    <div class="col-lg-4 mb-4">
+        <div class="card details-card">
+            <div class="card-header">
+                Customer Information
+            </div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush details-list-group">
+                    <li class="list-group-item">
+                        <strong>Name:</strong>
+                        <span>{{ order.CustomerName }}</span>
+                    </li>
+                    <li class="list-group-item">
+                        <strong>Address:</strong>
+                        <span class="text-end">{{ order.Address }}</span>
+                    </li>
+                    <li class="list-group-item">
+                        <strong>Phone:</strong>
+                        <span>{{ order.Phone }}</span>
+                    </li>
+                    <li class="list-group-item">
+                        <strong>Email:</strong>
+                        <span>{{ order.Email }}</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        <div class="d-grid gap-2 mt-3">
+             <a href="{{ url_for('erp_orders') }}" class="btn btn-secondary"><i class="fas fa-arrow-left me-2"></i>Back to All Orders</a>
+             <a href="{{ url_for('erp_edit_order', order_id=order.OrderID) }}" class="btn btn-primary"><i class="fas fa-edit me-2"></i>Edit This Order</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

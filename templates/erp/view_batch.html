@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}Batch #{{ batch.BatchID }} Details - ERP System{% endblock %}
+
+{% block content %}
+<style>
+    .details-card .card-header {
+        background-color: #e9ecef;
+        font-weight: 600;
+    }
+    .details-list-group .list-group-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem 1.25rem;
+    }
+</style>
+
+<div class="row">
+    <div class="col-12">
+        <h2><i class="fas fa-cubes"></i> Batch Details: #{{ batch.BatchID }}</h2>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('erp_production') }}">Production Management</a></li>
+                <li class="breadcrumb-item active">Batch #{{ batch.BatchID }}</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8 mb-4">
+        <div class="card details-card h-100">
+            <div class="card-header">
+                Batch Information
+            </div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush details-list-group">
+                    <li class="list-group-item"><strong>Batch ID:</strong> <span>#{{ batch.BatchID }}</span></li>
+                    <li class="list-group-item"><strong>Related Order:</strong> <a href="{{ url_for('erp_view_order', order_id=batch.OrderID) }}">Order #{{ batch.OrderID }}</a></li>
+                    <li class="list-group-item"><strong>Product:</strong> <span>{{ batch.ProductName }}</span></li>
+                    <li class="list-group-item"><strong>Quantity:</strong> <span>{{ batch.QuantityBatch }} cubic meters</span></li>
+                    <li class="list-group-item"><strong>Plant Location:</strong> <span>{{ batch.LocationName }}</span></li>
+                    <li class="list-group-item"><strong>Batch Time:</strong> <span>{{ batch.BatchTime }}</span></li>
+                    <li class="list-group-item"><strong>Status:</strong> <span class="badge bg-primary fs-6">{{ batch.Status }}</span></li>
+                    <li class="list-group-item"><strong>Created By:</strong> <span>{{ batch.CreatedByName }}</span></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4 mb-4">
+        <div class="card details-card">
+            <div class="card-header">
+                Customer Information
+            </div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush details-list-group">
+                    <li class="list-group-item"><strong>Name:</strong> <span>{{ batch.CustomerName }}</span></li>
+                </ul>
+            </div>
+        </div>
+        <div class="d-grid gap-2 mt-3">
+             <a href="{{ url_for('erp_production') }}" class="btn btn-secondary"><i class="fas fa-arrow-left me-2"></i>Back to Production</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

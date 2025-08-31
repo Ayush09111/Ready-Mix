@@ -1,0 +1,239 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Ready Mix Company ERP{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2><i class="fas fa-tachometer-alt"></i> Dashboard</h2>
+        <p class="text-muted">Welcome to the Ready Mix Company ERP and Job Kart Integration System</p>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-md-2">
+        <div class="card bg-info text-white">
+            <div class="card-body text-center">
+                <h5>{{ stats.total_orders }}</h5>
+                <p>Total Orders</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card bg-warning text-white">
+            <div class="card-body text-center">
+                <h5>{{ stats.pending_orders }}</h5>
+                <p>Pending Orders</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card bg-primary text-white">
+            <div class="card-body text-center">
+                <h5>{{ stats.active_jobs }}</h5>
+                <p>Active Jobs</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card bg-success text-white">
+            <div class="card-body text-center">
+                <h5>{{ stats.available_vehicles }}</h5>
+                <p>Available Vehicles</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card bg-secondary text-white">
+            <div class="card-body text-center">
+                <h5>{{ stats.total_vehicles }}</h5>
+                <p>Total Vehicles</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card bg-danger text-white">
+            <div class="card-body text-center">
+                <h5>{{ stats.low_inventory }}</h5>
+                <p>Low Stock Items</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Recent Orders -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-shopping-cart"></i> Recent Orders</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Order ID</th>
+                                <th>Customer</th>
+                                <th>Product</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for order in recent_orders %}
+                            <tr>
+                                <td>{{ order.OrderID }}</td>
+                                <td>{{ order.CustomerName }}</td>
+                                <td>{{ order.ProductName }} ({{ order.Quantity }})</td>
+                                <td>
+                                    <span class="badge bg-{% if order.Status == 'Confirmed' %}warning{% elif order.Status == 'Delivered' %}success{% else %}secondary{% endif %}">
+                                        {{ order.Status }}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Jobs -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-tasks"></i> Recent Job Cards</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Job ID</th>
+                                <th>Type</th>
+                                <th>Assigned To</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for job in recent_jobs %}
+                            <tr>
+                                <td>{{ job.JobCardID }}</td>
+                                <td>{{ job.JobType }}</td>
+                                <td>{{ job.AssignedTo or 'Unassigned' }}</td>
+                                <td>
+                                    <span class="badge bg-{% if job.Status == 'Open' %}warning{% elif job.Status == 'Completed' %}success{% elif job.Status == 'In Progress' %}primary{% else %}secondary{% endif %}">
+                                        {{ job.Status }}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if low_inventory %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-danger text-white">
+                <h5><i class="fas fa-exclamation-triangle"></i> Low Inventory Alert</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Material</th>
+                                <th>Current Stock</th>
+                                <th>Threshold</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in low_inventory %}
+                            <tr>
+                                <td>{{ item.MaterialName }}</td>
+                                <td>{{ item.CurrentStock }} {{ item.Unit }}</td>
+                                <td>{{ item.Threshold }} {{ item.Unit }}</td>
+                                <td><span class="badge bg-danger">Low Stock</span></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Integration Actions -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-link"></i> Integration Actions</h5>
+            </div>
+            <div class="card-body">
+                <button class="btn btn-primary me-2" onclick="autoCreateJobs()">
+                    <i class="fas fa-plus"></i> Auto Create Job Cards
+                </button>
+                <button class="btn btn-success" onclick="syncInventory()">
+                    <i class="fas fa-sync"></i> Sync Inventory
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function autoCreateJobs() {
+    fetch('/api/auto_create_jobs', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'}
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(`${data.created_jobs} job cards created successfully!`);
+            location.reload();
+        } else {
+            alert('Failed to create job cards');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred');
+    });
+}
+
+function syncInventory() {
+    fetch('/api/sync_inventory', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'}
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(`${data.synced_jobs} inventory records synchronized!`);
+            location.reload();
+        } else {
+            alert('Failed to sync inventory');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred');
+    });
+}
+</script>
+{% endblock %}

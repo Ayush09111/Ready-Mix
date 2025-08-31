@@ -1,0 +1,245 @@
+{% extends "base.html" %}
+
+{% block title %}Order Management - ERP System{% endblock %}
+
+{% block content %}
+<style>
+    /* Custom styles for the themed orders page */
+    body {
+        background-color: #f8f9fa;
+        background-image: 
+            linear-gradient(rgba(233, 238, 247, 0.95), rgba(233, 238, 247, 0.95)),
+            url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Cg fill='%23dce4f2' fill-opacity='0.4'%3E%3Crect x='0' y='0' width='100' height='1'/%3E%3Crect x='0' y='0' width='1' height='100'/%3E%3C/g%3E%3C/svg%3E");
+    }
+
+    .main-header {
+        background: linear-gradient(90deg, #0d6efd 0%, #0dcaf0 100%);
+        color: white;
+        padding: 2.5rem;
+        border-radius: 1rem;
+        margin-bottom: 2.5rem;
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+    }
+    .main-header h2 {
+        font-weight: 700;
+    }
+
+    .card-header .btn {
+        float: right;
+    }
+    
+    .table thead th {
+        vertical-align: middle;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    .table tbody td {
+        vertical-align: middle;
+    }
+
+    .action-buttons a, .action-buttons button {
+        margin: 0 2px;
+    }
+    
+    .search-bar {
+        position: relative;
+    }
+    .search-bar .fa-search {
+        position: absolute;
+        left: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #6c757d;
+    }
+    .search-bar .form-control {
+        padding-left: 2.5rem;
+    }
+
+    /* --- Custom Modal Styles --- */
+    .custom-modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 9998;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s ease, visibility 0.3s ease;
+    }
+    .custom-modal-overlay.active {
+        opacity: 1;
+        visibility: visible;
+    }
+    .custom-modal-content {
+        background: white;
+        padding: 2rem;
+        border-radius: 0.5rem;
+        max-width: 500px;
+        width: 90%;
+        text-align: center;
+        z-index: 9999;
+        transform: scale(0.9);
+        transition: transform 0.3s ease;
+    }
+    .custom-modal-overlay.active .custom-modal-content {
+        transform: scale(1);
+    }
+    .modal-actions {
+        margin-top: 1.5rem;
+        display: flex;
+        justify-content: center;
+        gap: 1rem;
+    }
+</style>
+
+<!-- Header -->
+<div class="main-header">
+    <h2><i class="fas fa-shopping-cart me-2"></i> Order Management</h2>
+    <p class="lead mb-0">Create, view, and manage all customer orders from a single location.</p>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">All Customer Orders</h5>
+                <a href="{{ url_for('erp_new_order') }}" class="btn btn-primary"><i class="fas fa-plus me-2"></i>New Order</a>
+            </div>
+            <div class="card-body">
+                <div class="mb-3 search-bar">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="orderSearch" class="form-control" placeholder="Search orders by ID, customer, product, or status...">
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>ID</th>
+                                <th>Customer</th>
+                                <th>Product</th>
+                                <th>Quantity</th>
+                                <th>Scheduled Date</th>
+                                <th>Status</th>
+                                <th class="text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ordersTableBody">
+                            {% for order in orders %}
+                            <tr>
+                                <td><strong>#{{ order.OrderID }}</strong></td>
+                                <td>{{ order.CustomerName }}</td>
+                                <td>{{ order.ProductName }}</td>
+                                <td>{{ order.Quantity }}</td>
+                                <td>{{ order.ScheduledDate }}</td>
+                                <td>
+                                    <span class="badge bg-{% if order.Status == 'Confirmed' %}warning text-dark{% elif order.Status == 'Delivered' %}success{% elif order.Status == 'In Production' %}primary{% else %}secondary{% endif %}">
+                                        {{ order.Status }}
+                                    </span>
+                                </td>
+                                <td class="text-center action-buttons">
+                                    <a href="{{ url_for('erp_view_order', order_id=order.OrderID) }}" class="btn btn-sm btn-outline-info" data-bs-toggle="tooltip" title="View Details"><i class="fas fa-eye"></i></a>
+                                    <a href="{{ url_for('erp_edit_order', order_id=order.OrderID) }}" class="btn btn-sm btn-outline-secondary" data-bs-toggle="tooltip" title="Edit Order"><i class="fas fa-edit"></i></a>
+                                    <button type="button" class="btn btn-sm btn-outline-danger delete-btn" 
+                                            data-order-id="{{ order.OrderID }}"
+                                            data-customer-name="{{ order.CustomerName }}"
+                                            title="Delete Order">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Custom Delete Confirmation Modal -->
+<div id="customDeleteModal" class="custom-modal-overlay">
+    <div class="custom-modal-content">
+        <h5 class="modal-title">Confirm Deletion</h5>
+        <hr>
+        <p id="deleteModalText" class="my-4"></p>
+        <div class="modal-actions">
+            <button type="button" class="btn btn-secondary" id="cancelDeleteBtn">Cancel</button>
+            <form id="deleteForm" method="POST" class="d-inline">
+                <button type="submit" class="btn btn-danger">Delete Order</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // --- Custom Delete Modal Logic ---
+    const customModal = document.getElementById('customDeleteModal');
+    const deleteModalText = document.getElementById('deleteModalText');
+    const deleteForm = document.getElementById('deleteForm');
+    const cancelBtn = document.getElementById('cancelDeleteBtn');
+
+    document.querySelectorAll('.delete-btn').forEach(button => {
+        button.addEventListener('click', function () {
+            const orderId = this.dataset.orderId;
+            const customerName = this.dataset.customerName;
+
+            // Update modal text and form action
+            deleteModalText.innerHTML = `Are you sure you want to delete Order #${orderId} for <strong>${customerName}</strong>? This action cannot be undone.`;
+            deleteForm.action = `/erp/orders/delete/${orderId}`;
+            
+            // Show the modal
+            customModal.classList.add('active');
+        });
+    });
+
+    // Hide the modal when cancel button is clicked
+    cancelBtn.addEventListener('click', function() {
+        customModal.classList.remove('active');
+    });
+
+    // Hide the modal when clicking on the overlay background
+    customModal.addEventListener('click', function(event) {
+        if (event.target === this) {
+            customModal.classList.remove('active');
+        }
+    });
+
+    // --- Live Search Functionality ---
+    const searchInput = document.getElementById('orderSearch');
+    const tableBody = document.getElementById('ordersTableBody');
+    const tableRows = tableBody.getElementsByTagName('tr');
+
+    searchInput.addEventListener('keyup', function() {
+        const filter = searchInput.value.toLowerCase();
+        
+        for (let i = 0; i < tableRows.length; i++) {
+            let row = tableRows[i];
+            let cells = row.getElementsByTagName('td');
+            let match = false;
+            for (let j = 0; j < cells.length; j++) {
+                if (cells[j]) {
+                    if (cells[j].textContent.toLowerCase().indexOf(filter) > -1) {
+                        match = true;
+                        break;
+                    }
+                }
+            }
+            if (match) {
+                row.style.display = "";
+            } else {
+                row.style.display = "none";
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,253 @@
+{% extends "base.html" %}
+
+{% block title %}Assignments - Job Kart System{% endblock %}
+
+{% block content %}
+<style>
+    .main-header {
+        background: linear-gradient(90deg, #198754 0%, #20c997 100%);
+        color: white;
+        padding: 2.5rem;
+        border-radius: 1rem;
+        margin-bottom: 2.5rem;
+        box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+    }
+    .table thead th, .table tbody td {
+        vertical-align: middle;
+    }
+    /* --- Custom Modal Styles --- */
+    .custom-modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 9998;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s ease, visibility 0.3s ease;
+    }
+    .custom-modal-overlay.active {
+        opacity: 1;
+        visibility: visible;
+    }
+    .custom-modal-content {
+        background: white;
+        border-radius: 0.5rem;
+        max-width: 800px;
+        width: 90%;
+        z-index: 9999;
+        transform: scale(0.9);
+        transition: transform 0.3s ease;
+        overflow: hidden;
+    }
+    .custom-modal-overlay.active .custom-modal-content {
+        transform: scale(1);
+    }
+    .custom-modal-header, .custom-modal-footer {
+        padding: 1rem 1.5rem;
+        background-color: #f7f7f7;
+    }
+    .custom-modal-body {
+        padding: 1.5rem;
+    }
+    .modal-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 1rem;
+    }
+    .delete-modal-content {
+        max-width: 500px;
+        text-align: center;
+    }
+</style>
+
+<!-- Header -->
+<div class="main-header">
+    <h2><i class="fas fa-user-plus me-2"></i> Resource Assignments</h2>
+    <p class="lead mb-0">View and manage resource assignments for job cards.</p>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>ID</th>
+                                <th>Job Card</th>
+                                <th>Employee</th>
+                                <th>Role</th>
+                                <th>Vehicle</th>
+                                <th>Equipment</th>
+                                <th>Job Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for assignment in assignments %}
+                            <tr>
+                                <td>{{ assignment.AssignmentID }}</td>
+                                <td>
+                                    <a href="{{ url_for('jobkart_job_detail', job_id=assignment.JobCardID) }}" class="badge bg-primary text-decoration-none">
+                                        Job #{{ assignment.JobCardID }}
+                                    </a>
+                                </td>
+                                <td>{{ assignment.EmployeeName or 'N/A' }}</td>
+                                <td>{{ assignment.RoleInJob }}</td>
+                                <td>{{ assignment.VehicleName or 'N/A' }}</td>
+                                <td>{{ assignment.EquipmentName or 'N/A' }}</td>
+                                <td>
+                                    <span class="badge bg-{% if assignment.JobStatus == 'Open' %}warning{% elif assignment.JobStatus == 'Completed' %}success{% elif assignment.JobStatus == 'In Progress' %}primary{% else %}secondary{% endif %}">
+                                        {{ assignment.JobStatus }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-secondary edit-btn"
+                                            data-id="{{ assignment.AssignmentID }}"
+                                            data-job-id="{{ assignment.JobCardID }}"
+                                            data-employee-id="{{ assignment.AssignedEmployeeID }}"
+                                            data-role="{{ assignment.RoleInJob }}"
+                                            data-vehicle-id="{{ assignment.AssignedVehicleID }}"
+                                            data-equipment-id="{{ assignment.AssignedEquipmentID }}">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger delete-btn"
+                                            data-id="{{ assignment.AssignmentID }}"
+                                            data-job-id="{{ assignment.JobCardID }}">
+                                        <i class="fas fa-trash"></i> Remove
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Assignment Modal -->
+<div id="editModal" class="custom-modal-overlay">
+    <div class="custom-modal-content">
+        <div class="custom-modal-header">
+            <h5 class="modal-title" id="modalTitle">Edit Assignment</h5>
+        </div>
+        <div class="custom-modal-body">
+            <form id="editForm" method="POST">
+                <div class="mb-3">
+                    <label for="employeeId" class="form-label">Employee</label>
+                    <select class="form-select" name="employee_id" id="employeeId">
+                        <option value="">None</option>
+                        {% for employee in employees %}
+                        <option value="{{ employee.EmployeeID }}">{{ employee.Name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="roleInJob" class="form-label">Role in Job</label>
+                    <input type="text" class="form-control" name="role_in_job" id="roleInJob">
+                </div>
+                <div class="mb-3">
+                    <label for="vehicleId" class="form-label">Vehicle</label>
+                    <select class="form-select" name="vehicle_id" id="vehicleId">
+                        <option value="">None</option>
+                        {% for vehicle in vehicles %}
+                        <option value="{{ vehicle.VehicleID }}">{{ vehicle.VehicleName }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="equipmentId" class="form-label">Equipment</label>
+                    <select class="form-select" name="equipment_id" id="equipmentId">
+                        <option value="">None</option>
+                        {% for equipment in equipment %}
+                        <option value="{{ equipment.EquipmentID }}">{{ equipment.EquipmentName }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </form>
+        </div>
+        <div class="custom-modal-footer">
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" id="cancelEditBtn">Cancel</button>
+                <button type="submit" form="editForm" class="btn btn-primary">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div id="deleteModal" class="custom-modal-overlay">
+    <div class="custom-modal-content delete-modal-content">
+        <h5 class="modal-title">Confirm Removal</h5>
+        <hr>
+        <p id="deleteModalText" class="my-4"></p>
+        <div class="modal-actions">
+            <button type="button" class="btn btn-secondary" id="cancelDeleteBtn">Cancel</button>
+            <form id="deleteForm" method="POST">
+                <button type="submit" class="btn btn-danger">Remove Assignment</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // --- Edit Modal Logic ---
+    const editModal = document.getElementById('editModal');
+    const editForm = document.getElementById('editForm');
+    const cancelEditBtn = document.getElementById('cancelEditBtn');
+
+    function showEditModal() { editModal.classList.add('active'); }
+    function hideEditModal() { editModal.classList.remove('active'); }
+
+    document.querySelectorAll('.edit-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const assignmentId = this.dataset.id;
+            editForm.action = `/jobkart/assignments/edit/${assignmentId}`;
+            
+            document.getElementById('employeeId').value = this.dataset.employeeId;
+            document.getElementById('roleInJob').value = this.dataset.role;
+            document.getElementById('vehicleId').value = this.dataset.vehicleId;
+            document.getElementById('equipmentId').value = this.dataset.equipmentId;
+            showEditModal();
+        });
+    });
+
+    cancelEditBtn.addEventListener('click', hideEditModal);
+    editModal.addEventListener('click', function(e) { if(e.target === this) hideEditModal(); });
+
+    // --- Delete Modal Logic ---
+    const deleteModal = document.getElementById('deleteModal');
+    const deleteModalText = document.getElementById('deleteModalText');
+    const deleteForm = document.getElementById('deleteForm');
+    const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
+
+    function showDeleteModal() { deleteModal.classList.add('active'); }
+    function hideDeleteModal() { deleteModal.classList.remove('active'); }
+
+    document.querySelectorAll('.delete-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const assignmentId = this.dataset.id;
+            const jobId = this.dataset.jobId;
+            deleteModalText.innerHTML = `Are you sure you want to remove Assignment #${assignmentId} from Job Card #${jobId}?`;
+            deleteForm.action = `/jobkart/assignments/delete/${assignmentId}`;
+            showDeleteModal();
+        });
+    });
+
+    cancelDeleteBtn.addEventListener('click', hideDeleteModal);
+    deleteModal.addEventListener('click', function(e) { if(e.target === this) hideDeleteModal(); });
+});
+</script>
+{% endblock %}

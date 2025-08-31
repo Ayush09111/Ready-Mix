@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}Assignments - Job Kart System{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2><i class="fas fa-user-plus"></i> Resource Assignments</h2>
+        <p class="text-muted">View and manage resource assignments for job cards</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Assignment ID</th>
+                                <th>Job Card</th>
+                                <th>Job Type</th>
+                                <th>Employee</th>
+                                <th>Role</th>
+                                <th>Vehicle</th>
+                                <th>Equipment</th>
+                                <th>Job Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for assignment in assignments %}
+                            <tr>
+                                <td>{{ assignment.AssignmentID }}</td>
+                                <td>
+                                    <a href="{{ url_for('jobkart_job_detail', job_id=assignment.JobCardID) }}" class="badge bg-primary text-decoration-none">
+                                        Job #{{ assignment.JobCardID }}
+                                    </a>
+                                </td>
+                                <td>{{ assignment.JobType }}</td>
+                                <td>{{ assignment.EmployeeName or 'N/A' }}</td>
+                                <td>{{ assignment.RoleInJob }}</td>
+                                <td>{{ assignment.VehicleName or 'N/A' }}</td>
+                                <td>{{ assignment.EquipmentName or 'N/A' }}</td>
+                                <td>
+                                    <span class="badge bg-{% if assignment.JobStatus == 'Open' %}warning{% elif assignment.JobStatus == 'Completed' %}success{% elif assignment.JobStatus == 'In Progress' %}primary{% else %}secondary{% endif %}">
+                                        {{ assignment.JobStatus }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger">
+                                        <i class="fas fa-trash"></i> Remove
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
