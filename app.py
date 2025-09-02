@@ -3,10 +3,16 @@ import sqlite3
 import hashlib
 from datetime import datetime, date
 from functools import wraps
+import os
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key_change_in_production'
 DATABASE = 'rmc_erp_system.db'
+
+# Ensure upload directory exists
+UPLOAD_FOLDER = 'static/uploads'
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
 
 # --- Database helper functions ---
 def get_db_connection():
@@ -164,7 +170,6 @@ def erp_new_order():
     conn.close()
     return render_template('erp/new_order.html', customers=customers, products=products)
 
-# FIXED: Proper route with parameter
 @app.route('/erp/orders/<int:order_id>')
 @login_required
 def erp_view_order(order_id):
@@ -443,11 +448,35 @@ def erp_delete_user(user_id):
     flash('User account deleted successfully.', 'danger')
     return redirect(url_for('erp_users'))
 
-# --- FIXED: Finance Management Routes ---
+# --- Finance Management Routes ---
 @app.route('/erp/finance')
 @login_required
 def erp_finance():
     conn = get_db_connection()
+    
+    # Create tables if they don't exist
+    conn.execute('''
+        CREATE TABLE IF NOT EXISTS Invoices (
+            InvoiceID INTEGER PRIMARY KEY AUTOINCREMENT,
+            CustomerID INTEGER,
+            Amount DECIMAL(10,2),
+            DueDate DATE,
+            Status TEXT DEFAULT 'Pending',
+            Date DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (CustomerID) REFERENCES Customers(CustomerID)
+        )
+    ''')
+    
+    conn.execute('''
+        CREATE TABLE IF NOT EXISTS Expenses (
+            ExpenseID INTEGER PRIMARY KEY AUTOINCREMENT,
+            Category TEXT,
+            Amount DECIMAL(10,2),
+            Date DATETIME DEFAULT CURRENT_TIMESTAMP,
+            Notes TEXT
+        )
+    ''')
+    
     # Get financial data with safe queries
     try:
         total_income = conn.execute('SELECT COALESCE(SUM(Amount), 0) as total FROM Invoices WHERE Status = "Paid"').fetchone()['total']
@@ -460,7 +489,7 @@ def erp_finance():
     customers = conn.execute('SELECT CustomerID, CustomerName as Name FROM Customers').fetchall()
     
     try:
-        invoices = conn.execute('SELECT i.*, c.CustomerName, i.Date FROM Invoices i JOIN Customers c ON i.CustomerID = c.CustomerID ORDER BY i.Date DESC LIMIT 10').fetchall()
+        invoices = conn.execute('SELECT i.*, c.CustomerName FROM Invoices i JOIN Customers c ON i.CustomerID = c.CustomerID ORDER BY i.Date DESC LIMIT 10').fetchall()
         expenses = conn.execute('SELECT * FROM Expenses ORDER BY Date DESC LIMIT 10').fetchall()
     except:
         invoices = []
@@ -481,18 +510,6 @@ def finance_add_invoice():
     due_date = request.form['due_date']
     conn = get_db_connection()
     try:
-        # Create Invoices table if it doesn't exist
-        conn.execute('''
-            CREATE TABLE IF NOT EXISTS Invoices (
-                InvoiceID INTEGER PRIMARY KEY AUTOINCREMENT,
-                CustomerID INTEGER,
-                Amount DECIMAL(10,2),
-                DueDate DATE,
-                Status TEXT DEFAULT 'Pending',
-                Date DATETIME DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (CustomerID) REFERENCES Customers(CustomerID)
-            )
-        ''')
         conn.execute('INSERT INTO Invoices (CustomerID, Amount, DueDate, Status, Date) VALUES (?, ?, ?, "Pending", ?)', 
                      (customer_id, amount, due_date, datetime.now()))
         conn.commit()
@@ -511,16 +528,6 @@ def finance_add_expense():
     notes = request.form.get('notes', '')
     conn = get_db_connection()
     try:
-        # Create Expenses table if it doesn't exist
-        conn.execute('''
-            CREATE TABLE IF NOT EXISTS Expenses (
-                ExpenseID INTEGER PRIMARY KEY AUTOINCREMENT,
-                Category TEXT,
-                Amount DECIMAL(10,2),
-                Date DATETIME DEFAULT CURRENT_TIMESTAMP,
-                Notes TEXT
-            )
-        ''')
         conn.execute('INSERT INTO Expenses (Category, Amount, Date, Notes) VALUES (?, ?, ?, ?)', 
                      (category, amount, datetime.now(), notes))
         conn.commit()
@@ -536,31 +543,235 @@ def finance_add_expense():
 @login_required
 def erp_crm():
     conn = get_db_connection()
+    
+    # Create CRM tables if they don't exist
+    conn.execute('''
+        CREATE TABLE IF NOT EXISTS CRM_Leads (
+            LeadID INTEGER PRIMARY KEY AUTOINCREMENT,
+            Name TEXT NOT NULL,
+            Email TEXT,
+            Phone TEXT,
+            Source TEXT,
+            Status TEXT DEFAULT 'New',
+            CreatedDate DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    
+    conn.execute('''
+        CREATE TABLE IF NOT EXISTS CRM_Opportunities (
+            OpportunityID INTEGER PRIMARY KEY AUTOINCREMENT,
+            CustomerID INTEGER,
+            CustomerName TEXT,
+            Value DECIMAL(10,2),
+            Stage TEXT,
+            CloseDate DATE,
+            CreatedDate DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (CustomerID) REFERENCES Customers(CustomerID)
+        )
+    ''')
+    
+    conn.execute('''
+        CREATE TABLE IF NOT EXISTS CRM_Tickets (
+            TicketID INTEGER PRIMARY KEY AUTOINCREMENT,
+            CustomerID INTEGER,
+            CustomerName TEXT,
+            Issue TEXT,
+            Status TEXT DEFAULT 'Open',
+            AssignedTo TEXT,
+            CreatedDate DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (CustomerID) REFERENCES Customers(CustomerID)
+        )
+    ''')
+    
+    # Get data for display
     customers = conn.execute('SELECT CustomerID, CustomerName as Name, Email, Phone, CustomerName as Company FROM Customers').fetchall()
-    # Placeholders for other CRM data
-    leads = []
-    opportunities = []
-    tickets = []
+    leads = conn.execute('SELECT * FROM CRM_Leads ORDER BY CreatedDate DESC').fetchall()
+    opportunities = conn.execute('SELECT * FROM CRM_Opportunities ORDER BY CreatedDate DESC').fetchall()
+    tickets = conn.execute('SELECT * FROM CRM_Tickets ORDER BY CreatedDate DESC').fetchall()
+    
     conn.close()
     return render_template('erp/crm.html', customers=customers, leads=leads, opportunities=opportunities, tickets=tickets)
 
-# --- Procurement Management Routes ---
-@app.route('/erp/procurement')
+@app.route('/erp/crm/add_customer', methods=['POST'])
 @login_required
-def erp_procurement():
+def crm_add_customer():
+    name = request.form['name']
+    company = request.form['company']
+    email = request.form['email']
+    phone = request.form['phone']
+    
     conn = get_db_connection()
-    # Placeholder data - replace with your actual queries if a 'Procurement' table exists
-    purchase_orders = [] 
-    suppliers = conn.execute('SELECT SupplierID, SupplierName as Name FROM Suppliers').fetchall()
-    conn.close()
-    return render_template('erp/procurement.html', purchase_orders=purchase_orders, suppliers=suppliers)
+    try:
+        conn.execute('INSERT INTO Customers (CustomerName, Email, Phone, Address) VALUES (?, ?, ?, ?)', 
+                     (name, email, phone, company))
+        conn.commit()
+        flash('Customer added successfully!', 'success')
+    except Exception as e:
+        flash(f'Error adding customer: {e}', 'danger')
+    finally:
+        conn.close()
+    return redirect(url_for('erp_crm'))
+
+@app.route('/erp/crm/add_lead', methods=['POST'])
+@login_required
+def crm_add_lead():
+    name = request.form['name']
+    email = request.form['email']
+    source = request.form['source']
+    
+    conn = get_db_connection()
+    try:
+        conn.execute('INSERT INTO CRM_Leads (Name, Email, Source, Status) VALUES (?, ?, ?, "New")', 
+                     (name, email, source))
+        conn.commit()
+        flash('Lead added successfully!', 'success')
+    except Exception as e:
+        flash(f'Error adding lead: {e}', 'danger')
+    finally:
+        conn.close()
+    return redirect(url_for('erp_crm'))
+
+@app.route('/erp/crm/add_ticket', methods=['POST'])
+@login_required
+def crm_add_ticket():
+    customer_id = request.form['customer_id']
+    issue = request.form['issue']
+    
+    conn = get_db_connection()
+    try:
+        # Get customer name
+        customer = conn.execute('SELECT CustomerName FROM Customers WHERE CustomerID = ?', (customer_id,)).fetchone()
+        customer_name = customer['CustomerName'] if customer else 'Unknown'
+        
+        conn.execute('INSERT INTO CRM_Tickets (CustomerID, CustomerName, Issue, Status, AssignedTo) VALUES (?, ?, ?, "Open", ?)', 
+                     (customer_id, customer_name, issue, session.get('employee_name', 'System')))
+        conn.commit()
+        flash('Support ticket created successfully!', 'success')
+    except Exception as e:
+        flash(f'Error creating ticket: {e}', 'danger')
+    finally:
+        conn.close()
+    return redirect(url_for('erp_crm'))
+
+@app.route('/erp/crm/delete_customer/<int:customer_id>', methods=['POST'])
+@login_required
+def crm_delete_customer(customer_id):
+    conn = get_db_connection()
+    try:
+        conn.execute('DELETE FROM Customers WHERE CustomerID = ?', (customer_id,))
+        conn.commit()
+        flash('Customer deleted successfully!', 'danger')
+    except Exception as e:
+        flash(f'Error deleting customer: {e}', 'danger')
+    finally:
+        conn.close()
+    return redirect(url_for('erp_crm'))
 
 # --- Compliance Management Routes ---
 @app.route('/erp/compliance')
 @login_required
 def erp_compliance():
-    # Placeholder logic
-    return render_template('erp/compliance.html', documents=[], summary={'total': 0, 'valid': 0, 'pending': 0, 'expired': 0})
+    conn = get_db_connection()
+    # Create table if missing
+    conn.execute('''
+        CREATE TABLE IF NOT EXISTS Compliance_Documents (
+            DocumentID INTEGER PRIMARY KEY AUTOINCREMENT,
+            Title TEXT NOT NULL,
+            Type TEXT NOT NULL,
+            IssueDate DATE,
+            ExpiryDate DATE,
+            FilePath TEXT,
+            UploadedBy INTEGER,
+            CreatedDate DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    # Query with status logic
+    documents = conn.execute('''
+        SELECT DocumentID, Title, Type, IssueDate, ExpiryDate, FilePath,
+        CASE
+            WHEN ExpiryDate < DATE('now') THEN 'Expired'
+            WHEN ExpiryDate <= DATE('now', '+30 days') THEN 'Pending'
+            ELSE 'Valid'
+        END AS Status
+        FROM Compliance_Documents
+        ORDER BY ExpiryDate ASC
+    ''').fetchall()
+    conn.close()
+    # Build summary
+    summary = {'total': len(documents)}
+    summary['valid'] = sum(1 for d in documents if d['Status']=='Valid')
+    summary['pending'] = sum(1 for d in documents if d['Status']=='Pending')
+    summary['expired'] = sum(1 for d in documents if d['Status']=='Expired')
+    return render_template('erp/compliance.html', documents=documents, summary=summary)
+
+@app.route('/erp/compliance/add_document', methods=['POST'])
+@login_required
+def compliance_add_document():
+    title = request.form.get('title','').strip()
+    doc_type = request.form.get('type','').strip()
+    issue_date = request.form.get('issue_date') or None
+    expiry_date = request.form.get('expiry_date') or None
+    # File upload
+    file_path = None
+    f = request.files.get('file')
+    if f and f.filename:
+        filename = f"{datetime.now().strftime('%Y%m%d%H%M%S')}_{f.filename}"
+        f.save(os.path.join(UPLOAD_FOLDER, filename))
+        file_path = f"uploads/{filename}"
+    conn = get_db_connection()
+    try:
+        conn.execute('''
+            INSERT INTO Compliance_Documents
+            (Title, Type, IssueDate, ExpiryDate, FilePath, UploadedBy)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ''', (title, doc_type, issue_date, expiry_date, file_path, session['user_id']))
+        conn.commit()
+        flash('Document added successfully!', 'success')
+    except Exception as e:
+        flash(f'Error adding document: {e}', 'danger')
+    finally:
+        conn.close()
+    return redirect(url_for('erp_compliance'))
+
+@app.route('/erp/compliance/delete_document/<int:doc_id>', methods=['POST'])
+@login_required
+def compliance_delete_document(doc_id):
+    conn = get_db_connection()
+    # Remove file if exists
+    doc = conn.execute('SELECT FilePath FROM Compliance_Documents WHERE DocumentID=?', (doc_id,)).fetchone()
+    conn.execute('DELETE FROM Compliance_Documents WHERE DocumentID = ?', (doc_id,))
+    conn.commit()
+    conn.close()
+    if doc and doc['FilePath']:
+        path = os.path.join('static', doc['FilePath'])
+        if os.path.exists(path):
+            os.remove(path)
+    flash('Document deleted successfully!', 'danger')
+    return redirect(url_for('erp_compliance'))
+# --- Procurement Management Routes ---
+@app.route('/erp/procurement')
+@login_required
+def erp_procurement():
+    conn = get_db_connection()
+    
+    # Create Procurement tables if they don't exist
+    conn.execute('''
+        CREATE TABLE IF NOT EXISTS Purchase_Orders (
+            OrderID INTEGER PRIMARY KEY AUTOINCREMENT,
+            SupplierID INTEGER,
+            OrderDate DATE,
+            Status TEXT DEFAULT 'Pending',
+            TotalAmount DECIMAL(10,2),
+            CreatedBy INTEGER,
+            FOREIGN KEY (SupplierID) REFERENCES Suppliers(SupplierID),
+            FOREIGN KEY (CreatedBy) REFERENCES Users(UserID)
+        )
+    ''')
+    
+    purchase_orders = conn.execute('SELECT po.*, s.SupplierName FROM Purchase_Orders po LEFT JOIN Suppliers s ON po.SupplierID = s.SupplierID ORDER BY po.OrderDate DESC').fetchall()
+    suppliers = conn.execute('SELECT SupplierID, SupplierName as Name FROM Suppliers').fetchall()
+    conn.close()
+    return render_template('erp/procurement.html', purchase_orders=purchase_orders, suppliers=suppliers)
 
 # --- Settings Management Routes ---
 @app.route('/erp/settings')
@@ -579,9 +790,35 @@ def jobkart_home():
 @login_required
 def jobkart_board():
     conn = get_db_connection()
-    # This assumes you have Kanban-related tables; using placeholders for now
-    columns = conn.execute('SELECT 1 as ColumnID, "To Do" as Title, 0 as Count').fetchall() 
+    
+    # Create board columns and get job data
+    columns = [
+        {'ColumnID': 1, 'Title': 'To Do', 'Count': 0},
+        {'ColumnID': 2, 'Title': 'In Progress', 'Count': 0},
+        {'ColumnID': 3, 'Title': 'Completed', 'Count': 0}
+    ]
+    
+    # Get job cards grouped by status
     cards = []
+    try:
+        job_cards = conn.execute('SELECT * FROM JobCards ORDER BY ScheduledStart ASC').fetchall()
+        for job in job_cards:
+            status_map = {'Open': 1, 'In Progress': 2, 'Completed': 3, 'Closed': 3}
+            column_id = status_map.get(job['Status'], 1)
+            cards.append({
+                'JobCardID': job['JobCardID'],
+                'Title': job['Description'][:50] + '...' if len(job['Description']) > 50 else job['Description'],
+                'ColumnID': column_id,
+                'Priority': job.get('Priority', 'Medium'),
+                'AssignedTo': job.get('AssignedTo', 'Unassigned')
+            })
+    except:
+        pass
+    
+    # Update column counts
+    for column in columns:
+        column['Count'] = len([c for c in cards if c['ColumnID'] == column['ColumnID']])
+    
     employees = conn.execute('SELECT EmployeeID, Name FROM Employees WHERE Status="Active"').fetchall()
     conn.close()
     return render_template('jobkart/board.html', columns=columns, cards=cards, employees=employees)
@@ -596,7 +833,6 @@ def jobkart_jobs():
     conn.close()
     return render_template('jobkart/jobs.html', jobs=jobs, employees=employees, orders=orders)
 
-# FIXED: Complete job management implementation
 @app.route('/jobkart/jobs/new', methods=['GET', 'POST'])
 @login_required
 def jobkart_new_job():
@@ -759,7 +995,6 @@ def auto_create_jobs():
 @login_required
 def sync_inventory():
     conn = get_db_connection()
-    # This is a placeholder for a more complex inventory sync logic
     flash('Inventory sync feature is not yet implemented.', 'info')
     conn.close()
     return jsonify({'success': True, 'synced_jobs': 0})
