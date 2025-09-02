@@ -1,330 +1,690 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{% block title %}Atal Ready Mix Pro{% endblock %}</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-    
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
     <style>
         :root {
             --sidebar-width: 260px;
             --sidebar-width-collapsed: 88px;
             --topbar-height: 70px;
-            
+
             /* Light Theme */
-            --sidebar-bg-light: linear-gradient(180deg, #1f2937 0%, #111827 100%);
-            --main-bg-light: #f3f4f6;
-            --text-color-light: #1f2937;
-            --text-muted-light: #6b7280;
-            --accent-color-light: #3b82f6;
-            --border-color-light: #e5e7eb;
-            --card-bg-light: #ffffff;
-            --shadow-color-light: rgba(99, 102, 241, 0.1);
-            --topbar-bg-light: rgba(255, 255, 255, 0.7);
+            --color-sidebar-bg-light: #1e293b;
+            --color-sidebar-text-light: #cbd5e1;
+            --color-sidebar-text-hover-light: #f8fafc;
+            --color-sidebar-accent-light: #3b82f6;
+            --color-main-bg-light: #f9fafb;
+            --color-text-light: #1e293b;
+            --color-text-muted-light: #64748b;
+            --color-border-light: #e2e8f0;
+            --color-card-bg-light: #ffffff;
+            --color-shadow-light: rgba(59, 130, 246, 0.15);
+            --color-topbar-bg-light: rgba(255, 255, 255, 0.85);
 
             /* Dark Theme */
-            --sidebar-bg-dark: linear-gradient(180deg, #1f2937 0%, #111827 100%);
-            --main-bg-dark: #111827;
-            --text-color-dark: #d1d5db;
-            --text-muted-dark: #9ca3af;
-            --accent-color-dark: #60a5fa;
-            --border-color-dark: #374151;
-            --card-bg-dark: #1f2937;
-            --shadow-color-dark: rgba(0, 0, 0, 0.2);
-            --topbar-bg-dark: rgba(31, 41, 55, 0.7);
+            --color-sidebar-bg-dark: #111827;
+            --color-sidebar-text-dark: #9ca3af;
+            --color-sidebar-text-hover-dark: #f3f4f6;
+            --color-sidebar-accent-dark: #60a5fa;
+            --color-main-bg-dark: #0f172a;
+            --color-text-dark: #e0e7ff;
+            --color-text-muted-dark: #94a3b8;
+            --color-border-dark: #374151;
+            --color-card-bg-dark: #1e293b;
+            --color-shadow-dark: rgba(0, 0, 0, 0.3);
+            --color-topbar-bg-dark: rgba(31, 41, 55, 0.85);
         }
 
         [data-theme="light"] {
-            --sidebar-bg: var(--sidebar-bg-light);
-            --main-bg: var(--main-bg-light);
-            --text-color: var(--text-color-light);
-            --text-muted: var(--text-muted-light);
-            --accent-color: var(--accent-color-light);
-            --border-color: var(--border-color-light);
-            --card-bg: var(--card-bg-light);
-            --shadow-color: var(--shadow-color-light);
-            --topbar-bg: var(--topbar-bg-light);
+            --sidebar-bg: var(--color-sidebar-bg-light);
+            --sidebar-text: var(--color-sidebar-text-light);
+            --sidebar-text-hover: var(--color-sidebar-text-hover-light);
+            --sidebar-accent: var(--color-sidebar-accent-light);
+            --main-bg: var(--color-main-bg-light);
+            --text-color: var(--color-text-light);
+            --text-muted: var(--color-text-muted-light);
+            --border-color: var(--color-border-light);
+            --card-bg: var(--color-card-bg-light);
+            --shadow-color: var(--color-shadow-light);
+            --topbar-bg: var(--color-topbar-bg-light);
         }
 
         [data-theme="dark"] {
-            --sidebar-bg: var(--sidebar-bg-dark);
-            --main-bg: var(--main-bg-dark);
-            --text-color: var(--text-color-dark);
-            --text-muted: var(--text-muted-dark);
-            --accent-color: var(--accent-color-dark);
-            --border-color: var(--border-color-dark);
-            --card-bg: var(--card-bg-dark);
-            --shadow-color: var(--shadow-color-dark);
-            --topbar-bg: var(--topbar-bg-dark);
+            --sidebar-bg: var(--color-sidebar-bg-dark);
+            --sidebar-text: var(--color-sidebar-text-dark);
+            --sidebar-text-hover: var(--color-sidebar-text-hover-dark);
+            --sidebar-accent: var(--color-sidebar-accent-dark);
+            --main-bg: var(--color-main-bg-dark);
+            --text-color: var(--color-text-dark);
+            --text-muted: var(--color-text-muted-dark);
+            --border-color: var(--color-border-dark);
+            --card-bg: var(--color-card-bg-dark);
+            --shadow-color: var(--color-shadow-dark);
+            --topbar-bg: var(--color-topbar-bg-dark);
+        }
+
+        /* Reset and base */
+        * {
+            box-sizing: border-box;
         }
 
         body {
-            background-color: var(--main-bg);
+            margin: 0;
             font-family: 'Poppins', sans-serif;
+            background-color: var(--main-bg);
             color: var(--text-color);
             overflow-x: hidden;
             transition: background-color 0.3s ease, color 0.3s ease;
         }
 
-        /* --- Main Layout --- */
-        .wrapper { display: flex; background: var(--main-bg); }
-        .main-content {
-            padding-left: var(--sidebar-width);
-            padding-top: var(--topbar-height);
-            width: 100%;
-            transition: padding-left 0.3s ease-in-out;
+        a {
+            text-decoration: none;
+            color: inherit;
         }
-        .content-inner { padding: 2rem; }
-        body.sidebar-collapsed .main-content { padding-left: var(--sidebar-width-collapsed); }
 
-        /* --- Sidebar --- */
+        /* Wrapper */
+        .wrapper {
+            display: flex;
+            min-height: 100vh;
+            background: var(--main-bg);
+        }
+
+        /* Sidebar */
         .sidebar {
-            width: var(--sidebar-width);
-            height: 100vh;
             position: fixed;
             top: 0;
             left: 0;
+            width: var(--sidebar-width);
+            height: 100vh;
             background: var(--sidebar-bg);
             display: flex;
             flex-direction: column;
             z-index: 1050;
-            transition: width 0.3s ease-in-out;
+            box-shadow: 2px 0 12px var(--shadow-color);
+            transition: width 0.3s ease-in-out, background-color 0.3s ease;
         }
+
+        body.sidebar-collapsed .sidebar {
+            width: var(--sidebar-width-collapsed);
+        }
+
         .sidebar-header {
-            padding: 1.25rem;
+            height: var(--topbar-height);
             display: flex;
             align-items: center;
             justify-content: center;
-            height: var(--topbar-height);
-            border-bottom: 1px solid rgba(255,255,255,0.1);
+            border-bottom: 1px solid var(--border-color);
+            padding: 0 1.5rem;
+            gap: 0.75rem;
+            user-select: none;
         }
+
         .sidebar-header a {
-            color: #fff; text-decoration: none; font-size: 1.5rem; font-weight: 600;
-            white-space: nowrap; overflow: hidden; display: flex; align-items: center;
+            display: flex;
+            align-items: center;
+            color: var(--sidebar-text);
+            font-weight: 700;
+            font-size: 1.5rem;
+            white-space: nowrap;
+            transition: color 0.3s ease;
         }
-        .sidebar-header .logo-icon {
-            color: var(--accent-color-light); font-size: 2rem; margin-right: 0.75rem;
-            transition: margin 0.3s ease-in-out;
-        }
-        .sidebar-header .logo-text { opacity: 1; transition: opacity 0.2s ease-in-out; }
-        .sidebar-nav { flex-grow: 1; overflow-y: auto; padding: 1rem; }
-        .sidebar-nav::-webkit-scrollbar { width: 5px; }
-        .sidebar-nav::-webkit-scrollbar-track { background: transparent; }
-        .sidebar-nav::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 5px; }
 
-        .nav-link, .accordion-button {
-            color: #d1d5db; display: flex; align-items: center; padding: 0.8rem 1rem;
-            margin-bottom: 0.25rem; border-radius: 0.5rem; font-weight: 500;
-            white-space: nowrap; transition: all 0.2s ease;
+        .sidebar-header a:hover {
+            color: var(--sidebar-accent);
         }
-        .nav-link .nav-icon, .accordion-button .nav-icon {
-            font-size: 1.25rem; width: 2rem; text-align: center; margin-right: 0.75rem;
+
+        .logo-icon {
+            font-size: 2.25rem;
+            color: var(--sidebar-accent);
             transition: margin 0.3s ease-in-out;
         }
-        .nav-link .nav-text, .accordion-button .nav-text { opacity: 1; transition: opacity 0.2s ease-in-out; }
-        .nav-link:hover, .accordion-button:hover { background-color: #1f2937; color: #fff; }
+
+        body.sidebar-collapsed .logo-text {
+            opacity: 0;
+            width: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease-in-out;
+        }
+
+        /* Sidebar nav */
+        .sidebar-nav {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 1rem 0;
+            scrollbar-width: thin;
+            scrollbar-color: var(--sidebar-accent) transparent;
+        }
+
+        .sidebar-nav::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .sidebar-nav::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .sidebar-nav::-webkit-scrollbar-thumb {
+            background-color: var(--sidebar-accent);
+            border-radius: 10px;
+        }
+
+        .nav-link,
+        .accordion-button {
+            display: flex;
+            align-items: center;
+            padding: 0.85rem 1.5rem;
+            color: var(--sidebar-text);
+            font-weight: 500;
+            font-size: 1rem;
+            border-radius: 0.5rem;
+            transition: background-color 0.25s ease, color 0.25s ease;
+            white-space: nowrap;
+            cursor: pointer;
+        }
+
+        .nav-link:hover,
+        .accordion-button:hover {
+            background-color: var(--sidebar-accent);
+            color: #fff;
+            text-decoration: none;
+        }
+
         .nav-link.active {
-            background-color: var(--accent-color-light); color: #fff; font-weight: 600;
-            box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3);
+            background-color: var(--sidebar-accent);
+            color: #fff;
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
         }
-        .accordion-button { width: 100%; background: none; border: none; }
-        .accordion-button:focus { box-shadow: none; }
-        .accordion-button:not(.collapsed) { background-color: transparent; color: #fff; }
-        .accordion-button::after { filter: brightness(0) invert(1); }
-        .accordion-body { padding: 0.5rem 0 0.5rem 1.5rem; }
-        .accordion-body a { color: #d1d5db; padding: 0.6rem; display: block; border-radius: 0.3rem; font-size: 0.95rem; }
-        .accordion-body a:hover { background-color: #1f2937; color: #fff; }
-        .sidebar-footer { padding: 1rem; border-top: 1px solid rgba(255,255,255,0.1); }
 
-        /* --- Collapsed Sidebar --- */
-        body.sidebar-collapsed .sidebar { width: var(--sidebar-width-collapsed); }
-        body.sidebar-collapsed .sidebar-header .logo-text,
-        body.sidebar-collapsed .nav-text { opacity: 0; width: 0; pointer-events: none; }
-        body.sidebar-collapsed .sidebar-header .logo-icon,
-        body.sidebar-collapsed .nav-icon { margin-right: 0; width: 100%; }
-        body.sidebar-collapsed .accordion-button::after { display: none; }
-        body.sidebar-collapsed .accordion-collapse { display: none !important; }
+        .nav-icon {
+            font-size: 1.4rem;
+            width: 2.5rem;
+            text-align: center;
+            margin-right: 1rem;
+            flex-shrink: 0;
+            transition: margin 0.3s ease-in-out;
+        }
 
-        /* --- Top Navigation Bar --- */
+        body.sidebar-collapsed .nav-text,
+        body.sidebar-collapsed .accordion-button .nav-text {
+            opacity: 0;
+            width: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease-in-out;
+        }
+
+        body.sidebar-collapsed .nav-icon {
+            margin-right: 0;
+            width: 100%;
+            font-size: 1.6rem;
+        }
+
+        /* Accordion */
+        .accordion-button {
+            background: none;
+            border: none;
+            padding-left: 1.5rem;
+            font-weight: 500;
+            color: var(--sidebar-text);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            transition: color 0.3s ease;
+        }
+
+        .accordion-button:focus {
+            box-shadow: none;
+            outline: none;
+        }
+
+        .accordion-button:not(.collapsed) {
+            color: #fff;
+            background-color: transparent;
+            font-weight: 600;
+        }
+
+        .accordion-button::after {
+            filter: brightness(0) invert(1);
+            transition: transform 0.3s ease;
+        }
+
+        .accordion-button:not(.collapsed)::after {
+            transform: rotate(90deg);
+        }
+
+        .accordion-body {
+            padding-left: 3.5rem;
+            padding-top: 0.25rem;
+            padding-bottom: 0.25rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .accordion-body a {
+            color: var(--sidebar-text);
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.4rem;
+            font-size: 0.95rem;
+            transition: background-color 0.25s ease, color 0.25s ease;
+        }
+
+        .accordion-body a:hover {
+            background-color: var(--sidebar-accent);
+            color: #fff;
+            text-decoration: none;
+        }
+
+        body.sidebar-collapsed .accordion-button::after {
+            display: none;
+        }
+
+        body.sidebar-collapsed .accordion-collapse {
+            display: none !important;
+        }
+
+        /* Sidebar footer */
+        .sidebar-footer {
+            padding: 1rem 1.5rem;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .sidebar-footer .nav-link {
+            color: var(--sidebar-text);
+            font-weight: 500;
+            padding: 0.85rem 0;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            border-radius: 0.5rem;
+            transition: background-color 0.25s ease, color 0.25s ease;
+        }
+
+        .sidebar-footer .nav-link:hover {
+            background-color: var(--sidebar-accent);
+            color: #fff;
+        }
+
+        /* Main content */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            padding-top: var(--topbar-height);
+            width: 100%;
+            min-height: 100vh;
+            transition: margin-left 0.3s ease-in-out;
+            background: var(--main-bg);
+        }
+
+        body.sidebar-collapsed .main-content {
+            margin-left: var(--sidebar-width-collapsed);
+        }
+
+        /* Topbar */
         .topbar {
-            position: fixed; top: 0; left: var(--sidebar-width);
-            width: calc(100% - var(--sidebar-width)); height: var(--topbar-height);
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 0 2rem; background-color: var(--topbar-bg);
-            backdrop-filter: saturate(180%) blur(10px); -webkit-backdrop-filter: saturate(180%) blur(10px);
-            border-bottom: 1px solid var(--border-color); z-index: 1000;
+            position: fixed;
+            top: 0;
+            left: var(--sidebar-width);
+            width: calc(100% - var(--sidebar-width));
+            height: var(--topbar-height);
+            background-color: var(--topbar-bg);
+            backdrop-filter: saturate(180%) blur(12px);
+            -webkit-backdrop-filter: saturate(180%) blur(12px);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 2rem;
+            z-index: 1100;
             transition: left 0.3s ease-in-out, width 0.3s ease-in-out, background-color 0.3s ease;
+            user-select: none;
         }
+
         body.sidebar-collapsed .topbar {
             left: var(--sidebar-width-collapsed);
             width: calc(100% - var(--sidebar-width-collapsed));
         }
 
-        .topbar-left { display: flex; align-items: center; gap: 1.5rem; }
-        .sidebar-toggler { font-size: 1.5rem; color: var(--text-muted); cursor: pointer; transition: color 0.2s ease; }
-        .sidebar-toggler:hover { color: var(--text-color); }
-        .search-bar { position: relative; }
+        .topbar-left {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .sidebar-toggler {
+            font-size: 1.6rem;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: color 0.25s ease;
+            user-select: none;
+        }
+
+        .sidebar-toggler:hover,
+        .sidebar-toggler:focus {
+            color: var(--text-color);
+            outline: none;
+        }
+
+        .search-bar {
+            position: relative;
+            width: 320px;
+            max-width: 100%;
+        }
+
         .search-bar input {
-            background-color: var(--main-bg); border: 1px solid var(--border-color);
-            border-radius: 2rem; padding: 0.5rem 1rem 0.5rem 2.5rem;
-            width: 300px; color: var(--text-color); transition: all 0.3s ease;
+            width: 100%;
+            padding: 0.5rem 1rem 0.5rem 2.8rem;
+            border-radius: 2rem;
+            border: 1.5px solid var(--border-color);
+            background-color: var(--main-bg);
+            color: var(--text-color);
+            font-size: 1rem;
+            transition: border-color 0.3s ease, background-color 0.3s ease;
         }
-        .search-bar .fa-search { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--text-muted); }
 
-        .topbar-right { display: flex; align-items: center; gap: 1rem; }
-        .topbar-icon { font-size: 1.2rem; color: var(--text-muted); cursor: pointer; position: relative; width: 40px; height: 40px; display: grid; place-items: center; border-radius: 50%; transition: background-color 0.2s; }
-        .topbar-icon:hover { background-color: var(--border-color); color: var(--text-color); }
-        .user-profile { text-align: right; }
-        .user-profile h5 { font-size: 1rem; font-weight: 600; margin: 0; color: var(--text-color); }
-        .user-profile p { font-size: 0.85rem; color: var(--text-muted); margin: 0; }
-        
-        /* --- Content Styling --- */
-        .content-inner { animation: fadeIn 0.5s ease-in-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .page-title { font-size: 2rem; font-weight: 700; margin-bottom: 1.5rem; color: var(--text-color); }
+        .search-bar input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .search-bar input:focus {
+            outline: none;
+            border-color: var(--sidebar-accent);
+            background-color: var(--card-bg);
+            box-shadow: 0 0 8px var(--sidebar-accent);
+        }
+
+        .search-bar .fa-search {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            pointer-events: none;
+            font-size: 1.1rem;
+        }
+
+        .topbar-right {
+            display: flex;
+            align-items: center;
+            gap: 1.25rem;
+        }
+
+        #live-clock {
+            font-weight: 500;
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            min-width: 160px;
+            text-align: center;
+            user-select: none;
+        }
+
+        .topbar-icon {
+            font-size: 1.3rem;
+            color: var(--text-muted);
+            cursor: pointer;
+            position: relative;
+            width: 44px;
+            height: 44px;
+            display: grid;
+            place-items: center;
+            border-radius: 50%;
+            transition: background-color 0.25s ease, color 0.25s ease;
+            user-select: none;
+        }
+
+        .topbar-icon:hover,
+        .topbar-icon:focus {
+            background-color: var(--border-color);
+            color: var(--text-color);
+            outline: none;
+        }
+
+        .user-profile {
+            text-align: right;
+            user-select: none;
+        }
+
+        .user-profile h5 {
+            font-size: 1.05rem;
+            font-weight: 600;
+            margin: 0;
+            color: var(--text-color);
+        }
+
+        .user-profile p {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin: 0;
+        }
+
+        /* Content */
+        .content-inner {
+            padding: 2rem 2rem 3rem;
+            animation: fadeInUp 0.5s ease forwards;
+            min-height: calc(100vh - var(--topbar-height));
+        }
+
+        .page-title {
+            font-size: 2.25rem;
+            font-weight: 700;
+            margin-bottom: 1.75rem;
+            color: var(--text-color);
+            user-select: none;
+        }
+
         .card-style {
-            background: var(--card-bg); border-radius: 0.75rem; border: 1px solid var(--border-color);
-            box-shadow: 0 10px 15px -3px var(--shadow-color), 0 4px 6px -4px var(--shadow-color);
-            padding: 1.5rem; transition: all 0.3s ease;
+            background: var(--card-bg);
+            border-radius: 1rem;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 12px 20px -5px var(--shadow-color);
+            padding: 2rem;
+            transition: box-shadow 0.3s ease;
         }
 
-        /* --- Mobile --- */
-        @media (max-width: 992px) {
-            .sidebar { transform: translateX(calc(-1 * var(--sidebar-width))); }
-            .sidebar.active { transform: translateX(0); }
-            .main-content, body.sidebar-collapsed .main-content { padding-left: 0; }
-            .topbar, body.sidebar-collapsed .topbar { left: 0; width: 100%; }
-            .sidebar-overlay {
-                position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-                background-color: rgba(0,0,0,0.5); z-index: 1040;
-                opacity: 0; visibility: hidden; transition: opacity 0.3s ease;
+        .card-style:hover {
+            box-shadow: 0 20px 30px -10px var(--shadow-color);
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(15px);
             }
-            .sidebar-overlay.active { opacity: 1; visibility: visible; }
-            .search-bar { display: none; }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Alerts */
+        .alert {
+            border-radius: 0.6rem;
+            font-weight: 500;
+            font-size: 1rem;
+        }
+
+        /* Mobile responsiveness */
+        @media (max-width: 992px) {
+            .sidebar {
+                transform: translateX(calc(-1 * var(--sidebar-width)));
+                box-shadow: 4px 0 20px rgba(0, 0, 0, 0.3);
+            }
+
+            .sidebar.active {
+                transform: translateX(0);
+                transition: transform 0.3s ease;
+            }
+
+            body.sidebar-collapsed .main-content,
+            .main-content {
+                margin-left: 0 !important;
+                padding-top: calc(var(--topbar-height) + 1rem);
+            }
+
+            .topbar,
+            body.sidebar-collapsed .topbar {
+                left: 0 !important;
+                width: 100% !important;
+                padding: 0 1rem;
+            }
+
+            .sidebar-overlay {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100vw;
+                height: 100vh;
+                background-color: rgba(0, 0, 0, 0.5);
+                z-index: 1040;
+                opacity: 0;
+                visibility: hidden;
+                transition: opacity 0.3s ease;
+            }
+
+            .sidebar-overlay.active {
+                opacity: 1;
+                visibility: visible;
+            }
+
+            .search-bar {
+                display: none;
+            }
         }
     </style>
 </head>
-<body data-theme="light">
+<body>
 <div class="wrapper">
     {% if session.user_id %}
-    <nav class="sidebar">
+    <nav class="sidebar" aria-label="Primary Sidebar">
         <div class="sidebar-header">
-            <a href="{{ url_for('dashboard') }}">
-                <i class="fas fa-industry logo-icon"></i>
+            <a href="{{ url_for('dashboard') }}" aria-label="Atal Ready Mix Dashboard">
+                <i class="fas fa-industry logo-icon" aria-hidden="true"></i>
                 <span class="logo-text">Atal Ready Mix</span>
             </a>
         </div>
-        
-        <ul class="nav flex-column sidebar-nav">
-            <li class="nav-item">
-                <a class="nav-link {{ 'active' if 'dashboard' in request.path else '' }}" href="{{ url_for('dashboard') }}" data-bs-toggle="tooltip" data-bs-placement="right" title="Dashboard">
-                    <i class="fas fa-tachometer-alt nav-icon"></i> <span class="nav-text">Dashboard</span>
+
+        <ul class="nav flex-column sidebar-nav" role="menu">
+            <li class="nav-item" role="none">
+                <a class="nav-link {{ 'active' if 'dashboard' in request.path else '' }}" href="{{ url_for('dashboard') }}" role="menuitem" data-bs-toggle="tooltip" data-bs-placement="right" title="Dashboard" tabindex="0">
+                    <i class="fas fa-tachometer-alt nav-icon" aria-hidden="true"></i>
+                    <span class="nav-text">Dashboard</span>
                 </a>
             </li>
-            
-            <li class="nav-item accordion accordion-flush">
+
+            <li class="nav-item accordion accordion-flush" role="none">
                 <div class="accordion-item bg-transparent border-0">
-                    <h2 class="accordion-header">
-                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#erp-collapse">
-                            <i class="fas fa-cogs nav-icon"></i> <span class="nav-text">ERP Modules</span>
+                    <h2 class="accordion-header" id="erp-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#erp-collapse" aria-expanded="false" aria-controls="erp-collapse" role="menuitem" tabindex="0">
+                            <i class="fas fa-cogs nav-icon" aria-hidden="true"></i>
+                            <span class="nav-text">ERP Modules</span>
                         </button>
                     </h2>
-                    <div id="erp-collapse" class="accordion-collapse collapse">
+                    <div id="erp-collapse" class="accordion-collapse collapse" aria-labelledby="erp-header" data-bs-parent=".sidebar-nav">
                         <div class="accordion-body">
-                            <a href="{{ url_for('erp_orders') }}">Orders</a>
-                            <a href="{{ url_for('erp_inventory') }}">Inventory</a>
-                            <a href="{{ url_for('erp_production') }}">Production</a>
-                            <a href="{{ url_for('erp_vehicles') }}">Vehicles</a>
-                            <a href="{{ url_for('erp_employees') }}">Employees</a>
-                            <a href="{{ url_for('erp_procurement') }}">Procurement</a>
-                            <a href="{{ url_for('erp_finance') }}">Finance</a>
-                            <a href="{{ url_for('erp_crm') }}">CRM</a>
-                            <a href="{{ url_for('erp_compliance') }}">Compliance</a>
+                            <a href="{{ url_for('erp_orders') }}" role="menuitem" tabindex="0">Orders</a>
+                            <a href="{{ url_for('erp_inventory') }}" role="menuitem" tabindex="0">Inventory</a>
+                            <a href="{{ url_for('erp_production') }}" role="menuitem" tabindex="0">Production</a>
+                            <a href="{{ url_for('erp_vehicles') }}" role="menuitem" tabindex="0">Vehicles</a>
+                            <a href="{{ url_for('erp_employees') }}" role="menuitem" tabindex="0">Employees</a>
+                            <a href="{{ url_for('erp_procurement') }}" role="menuitem" tabindex="0">Procurement</a>
+                            <a href="{{ url_for('erp_finance') }}" role="menuitem" tabindex="0">Finance</a>
+                            <a href="{{ url_for('erp_crm') }}" role="menuitem" tabindex="0">CRM</a>
+                            <a href="{{ url_for('erp_compliance') }}" role="menuitem" tabindex="0">Compliance</a>
                             {% if session.role == 'Administrator' %}
-                            <a href="{{ url_for('erp_users') }}">User Management</a>
-                            <a href="{{ url_for('erp_settings') }}">Settings</a>
+                            <a href="{{ url_for('erp_users') }}" role="menuitem" tabindex="0">User Management</a>
+                            <a href="{{ url_for('erp_settings') }}" role="menuitem" tabindex="0">Settings</a>
                             {% endif %}
                         </div>
                     </div>
                 </div>
             </li>
 
-            <li class="nav-item accordion accordion-flush">
+            <li class="nav-item accordion accordion-flush" role="none">
                 <div class="accordion-item bg-transparent border-0">
-                    <h2 class="accordion-header">
-                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#jobkart-collapse">
-                            <i class="fas fa-tasks nav-icon"></i> <span class="nav-text">Job Kart</span>
+                    <h2 class="accordion-header" id="jobkart-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#jobkart-collapse" aria-expanded="false" aria-controls="jobkart-collapse" role="menuitem" tabindex="0">
+                            <i class="fas fa-tasks nav-icon" aria-hidden="true"></i>
+                            <span class="nav-text">Job Kart</span>
                         </button>
                     </h2>
-                    <div id="jobkart-collapse" class="accordion-collapse collapse">
+                    <div id="jobkart-collapse" class="accordion-collapse collapse" aria-labelledby="jobkart-header" data-bs-parent=".sidebar-nav">
                         <div class="accordion-body">
-                            <a href="{{ url_for('jobkart_jobs') }}">Job Cards</a>
-                            <a href="{{ url_for('jobkart_board') }}">Board</a>
-                            <a href="{{ url_for('jobkart_assignments') }}">Assignments</a>
+                            <a href="{{ url_for('jobkart_jobs') }}" role="menuitem" tabindex="0">Job Cards</a>
+                            <a href="{{ url_for('jobkart_board') }}" role="menuitem" tabindex="0">Board</a>
+                            <a href="{{ url_for('jobkart_assignments') }}" role="menuitem" tabindex="0">Assignments</a>
                         </div>
                     </div>
                 </div>
             </li>
 
-            <li class="nav-item">
-                <a class="nav-link" href="{{ url_for('integration_home') }}" data-bs-toggle="tooltip" data-bs-placement="right" title="Integration">
-                    <i class="fas fa-link nav-icon"></i> <span class="nav-text">Integration</span>
+            <li class="nav-item" role="none">
+                <a class="nav-link" href="{{ url_for('integration_home') }}" role="menuitem" data-bs-toggle="tooltip" data-bs-placement="right" title="Integration" tabindex="0">
+                    <i class="fas fa-link nav-icon" aria-hidden="true"></i>
+                    <span class="nav-text">Integration</span>
                 </a>
             </li>
         </ul>
 
         <div class="sidebar-footer">
-            <a class="nav-link" href="{{ url_for('logout') }}" data-bs-toggle="tooltip" data-bs-placement="right" title="Logout">
-                <i class="fas fa-sign-out-alt nav-icon"></i> <span class="nav-text">Logout</span>
+            <a class="nav-link" href="{{ url_for('logout') }}" role="menuitem" data-bs-toggle="tooltip" data-bs-placement="right" title="Logout" tabindex="0">
+                <i class="fas fa-sign-out-alt nav-icon" aria-hidden="true"></i>
+                <span class="nav-text">Logout</span>
             </a>
         </div>
     </nav>
-    <div class="sidebar-overlay d-lg-none"></div>
+
+    <div class="sidebar-overlay d-lg-none" tabindex="-1" aria-hidden="true"></div>
     {% endif %}
 
     <div class="{% if session.user_id %}main-content{% else %}container mt-4{% endif %}">
         {% if session.user_id %}
-        <header class="topbar">
+        <header class="topbar" role="banner">
             <div class="topbar-left">
-                <i class="fas fa-bars sidebar-toggler"></i>
-                <div class="search-bar d-none d-md-block">
-                    <i class="fas fa-search"></i>
-                    <input type="text" class="form-control" placeholder="Search...">
+                <button class="sidebar-toggler" aria-label="Toggle sidebar" aria-expanded="false" aria-controls="sidebar">
+                    <i class="fas fa-bars" aria-hidden="true"></i>
+                </button>
+                <div class="search-bar d-none d-md-block" role="search">
+                    <i class="fas fa-search" aria-hidden="true"></i>
+                    <input type="search" class="form-control" placeholder="Search..." aria-label="Search" />
                 </div>
             </div>
             <div class="topbar-right">
-                <div id="live-clock" class="text-muted d-none d-lg-block"></div>
-                <div class="topbar-icon" id="theme-toggler" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Toggle Theme">
-                    <i class="fas fa-sun"></i>
-                </div>
-                <div class="topbar-icon">
-                    <i class="fas fa-bell"></i>
-                </div>
-                <div class="user-profile">
+                <div id="live-clock" class="text-muted d-none d-lg-block" aria-live="polite" aria-atomic="true"></div>
+                <button class="topbar-icon" id="theme-toggler" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Toggle Theme" aria-label="Toggle light/dark theme" type="button">
+                    <i class="fas fa-sun" aria-hidden="true"></i>
+                </button>
+                <button class="topbar-icon" aria-label="Notifications" type="button">
+                    <i class="fas fa-bell" aria-hidden="true"></i>
+                </button>
+                <div class="user-profile" aria-label="User profile">
                     <h5>{{ session.employee_name }}</h5>
                     <p>{{ session.role }}</p>
                 </div>
             </div>
         </header>
         {% endif %}
-        
-        <main class="content-inner">
+
+        <main class="content-inner" role="main">
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
                     {% for category, message in messages %}
                         <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
                             {{ message }}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                         </div>
                     {% endfor %}
                 {% endif %}
             {% endwith %}
-            
+
             {% block content %}{% endblock %}
         </main>
     </div>
@@ -341,15 +701,16 @@
         const themeIcon = themeToggler.querySelector('i');
         const isDesktop = () => window.innerWidth > 992;
 
-        // --- Sidebar Toggler ---
+        // Sidebar toggle function
         function toggleSidebar() {
             if (isDesktop()) {
                 body.classList.toggle('sidebar-collapsed');
-                // Re-initialize tooltips after transition
+                toggler.setAttribute('aria-expanded', body.classList.contains('sidebar-collapsed'));
                 setTimeout(initializeTooltips, 300);
             } else {
                 sidebar.classList.toggle('active');
                 overlay.classList.toggle('active');
+                toggler.setAttribute('aria-expanded', sidebar.classList.contains('active'));
             }
         }
 
@@ -357,15 +718,15 @@
         if (overlay) overlay.addEventListener('click', () => {
             sidebar.classList.remove('active');
             overlay.classList.remove('active');
+            toggler.setAttribute('aria-expanded', false);
         });
 
-        // --- Tooltips for Collapsed Sidebar ---
+        // Initialize Bootstrap tooltips for collapsed sidebar
         let tooltipList = [];
         function initializeTooltips() {
-            // Dispose of existing tooltips
             tooltipList.forEach(t => t.dispose());
             tooltipList = [];
-            
+
             if (body.classList.contains('sidebar-collapsed')) {
                 const tooltipTriggerList = [].slice.call(document.querySelectorAll('.sidebar .nav-link[data-bs-toggle="tooltip"]'));
                 tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
@@ -373,20 +734,20 @@
                 });
             }
         }
-        
-        // --- Theme Switcher ---
-        const currentTheme = localStorage.getItem('theme') || 'light';
-        body.setAttribute('data-theme', currentTheme);
-        themeIcon.className = currentTheme === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
+
+        // Theme toggler
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        body.setAttribute('data-theme', savedTheme);
+        themeIcon.className = savedTheme === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
 
         themeToggler.addEventListener('click', () => {
-            let newTheme = body.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+            const newTheme = body.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
             body.setAttribute('data-theme', newTheme);
             localStorage.setItem('theme', newTheme);
             themeIcon.className = newTheme === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
         });
-        
-        // --- Live Clock ---
+
+        // Live clock
         const clockElement = document.getElementById('live-clock');
         function updateClock() {
             if (clockElement) {
@@ -397,14 +758,12 @@
         }
         updateClock();
         setInterval(updateClock, 10000);
-        
-        // Initializations
+
+        // Initialize tooltips
         initializeTooltips();
-        // Initialize theme toggler tooltip
         new bootstrap.Tooltip(themeToggler);
     });
 </script>
 {% block scripts %}{% endblock %}
 </body>
 </html>
-
