@@ -1,311 +1,536 @@
 {% extends "base.html" %}
+{% block title %}Dashboard - Atal Ready Mix ERP{% endblock %}
 
-{% block title %}Dashboard - Ready Mix Company ERP{% endblock %}
-
-{% block content %}
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
-    body {
-        background:
-            linear-gradient(160deg, #e3f0ff 0%, #eaf6f9 100%),
-            url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Cg fill='%23dce4f2' fill-opacity='0.4'%3E%3Crect x='0' y='0' width='100' height='1'/%3E%3Crect x='0' y='0' width='1' height='100'/%3E%3C/g%3E%3C/svg%3E");
-        min-height: 100vh;
+    /* Dashboard-specific styles that won't conflict */
+    .dashboard-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
     }
-
-    .main-header {
-        background: linear-gradient(100deg, #0d6efd 0%, #07b4f6 80%, #60e1e0 100%);
-        color: #fff;
-        padding: 2.7rem 2.5rem;
-        border-radius: 1.3rem;
-        margin-bottom: 2.5rem;
-        box-shadow: 0 12px 28px rgba(13,110,253,0.14), 0 0.5px 4px 1px #60e1e0;
+    
+    .dashboard-stat-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        text-align: center;
         position: relative;
         overflow: hidden;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
-    .main-header::before {
+    
+    .dashboard-stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    }
+    
+    .dashboard-stat-card::before {
         content: '';
         position: absolute;
-        top: 0; right: 0; bottom: 0; left: 0;
-        background: radial-gradient(circle at 70% 20%, rgba(255,255,255,0.13) 0%, rgba(0,0,0,0) 70%);
-        z-index: 0;
-        pointer-events: none;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(255, 255, 255, 0.1);
+        opacity: 0;
+        transition: opacity 0.3s ease;
     }
-    .main-header h2 {
-        font-weight: 900;
-        text-shadow: 0 3px 12px rgba(0,0,0,0.09);
-        margin-bottom: 0.25rem;
-        letter-spacing: 0.02em;
-        position: relative;
-        z-index: 1;
+    
+    .dashboard-stat-card:hover::before {
+        opacity: 1;
     }
-    .main-header p {
-        opacity: 0.98;
-        position: relative;
-        z-index: 1;
-        font-size: 1.13rem;
+    
+    .stat-icon-large {
+        font-size: 2.5rem;
+        margin-bottom: 0.75rem;
+        opacity: 0.9;
     }
-
-    .stats-card {
-        background: rgba(255,255,255,0.75);
-        border-left: 7px solid;
-        border-radius: 1.13rem;
-        transition: box-shadow 0.3s, transform 0.35s;
-        box-shadow: 0 8px 32px 0 rgba(76, 110, 255, 0.12), 0 1px 8px #0dcaf0;
-        overflow: hidden;
-        position: relative;
-        backdrop-filter: blur(6.5px);
-    }
-    .stats-card:hover {
-        transform: translateY(-8px) scale(1.025);
-        box-shadow: 0 16px 28px 0 rgba(13, 110, 253, 0.17), 0 1px 12px #0dcaf0;
-    }
-    .stats-card .card-body {
-        padding: 1.67rem;
-        position: relative;
-        z-index: 2;
-    }
-    .stats-card h5 {
-        font-size: 1.07rem;
+    
+    .stat-number {
+        font-size: 2.2rem;
         font-weight: 700;
-        color: #5382d7;
-        margin-bottom: 0.42rem;
-        letter-spacing: 0.02em;
+        margin-bottom: 0.5rem;
+        line-height: 1;
     }
-    .stats-card p {
-        font-size: 2.32rem;
-        font-weight: 800;
-        margin-bottom: 0;
-        letter-spacing: 0.01em;
+    
+    .stat-title {
+        font-size: 0.9rem;
+        opacity: 0.95;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 500;
     }
-    .stats-card .icon {
+    
+    .stat-change-badge {
         position: absolute;
-        top: 53%;
-        right: 1.5rem;
-        font-size: 4.23rem;
-        opacity: 0.18;
-        pointer-events: none;
-        transition: transform 0.3s;
+        top: 1rem;
+        right: 1rem;
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.2);
+        backdrop-filter: blur(10px);
     }
-    .stats-card:hover .icon {
-        transform: scale(1.15) rotate(-4deg);
+    
+    /* Chart containers */
+    .chart-wrapper {
+        background: var(--color-canvas-default, #ffffff);
+        border: 1px solid var(--color-border-default, #d0d7de);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     }
-    .border-info-left { border-left-color: #36aac1; }
-    .border-warning-left { border-left-color: #fdb346; }
-    .border-primary-left { border-left-color: #4376f7; }
-    .border-success-left { border-left-color: #5ec07e; }
-    .border-secondary-left { border-left-color: #8899ad; }
-    .border-danger-left { border-left-color: #f66477; }
-
-    .text-info-dark { color: #13b5de; }
-    .text-warning-dark { color: #fab037; }
-    .text-primary-dark { color: #327ed9; }
-    .text-success-dark { color: #13bb81; }
-    .text-secondary-dark { color: #6b7b8e; }
-    .text-danger-dark { color: #dc4076; }
-
-    .row.g-4 > .col-lg-2 {
-        min-width: 240px;
+    
+    .chart-header-section {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid var(--color-border-muted, #d8dee4);
     }
-
-    .card-table .card-header {
-        background: linear-gradient(90deg,#e3f0ff 0%, #e8eafc 100%);
-        border-bottom: 2px solid #f4f7fd;
-        font-weight: 700;
+    
+    .chart-title-text {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--color-fg-default, #1f2328);
+        margin: 0;
     }
-    .card-table .nav-tabs .nav-link.active {
-        background: #e8eafc;
-        border-bottom-color: #60e1e0;
-        color: #327ed9;
-        font-weight: 700;
-        box-shadow: 0 3px 8px rgba(76,110,255,.07);
+    
+    .chart-canvas-container {
+        position: relative;
+        height: 300px;
+        margin-bottom: 1rem;
     }
-    .card-table .nav-tabs .nav-link {
-        color: #929fb0;
-        transition: background 0.3s, color 0.3s;
+    
+    /* Activity section */
+    .activity-wrapper {
+        background: var(--color-canvas-default, #ffffff);
+        border: 1px solid var(--color-border-default, #d0d7de);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
     }
-
-    .card.mb-4 {
-        border: none;
-        box-shadow: 0 4px 16px rgba(253,179,70,0.10), 0 1px 3px #dc3645;
-        background: linear-gradient(140deg, #ffc107 45%, #dc3545 95%);
+    
+    .activity-list {
+        max-height: 400px;
+        overflow-y: auto;
     }
-    .card.mb-4 h5 {
-        text-shadow: 0 1.5px 2px rgba(0,0,0,0.18);
+    
+    .activity-list-item {
+        display: flex;
+        align-items: center;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid var(--color-border-muted, #d8dee4);
     }
-    .card .btn-lg {
-        font-size: 1.1rem;
-        font-weight: 700;
-        border-radius: 0.85rem;
-        box-shadow: 0 2px 10px rgba(13,110,253,0.10);
-        padding: 0.95rem 1rem;
+    
+    .activity-list-item:last-child {
+        border-bottom: none;
     }
-    table.table th, table.table td {
-        vertical-align: middle;
+    
+    .activity-item-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 0.75rem;
+        font-size: 0.875rem;
     }
-    .badge {
-        font-size: 0.97rem;
-        font-weight: 700;
-        letter-spacing: 0.04em;
-        padding: 0.45em 1.1em;
-        border-radius: 0.6em;
-        box-shadow: 0 1px 4px rgba(13,110,253,0.08);
+    
+    .activity-item-content {
+        flex-grow: 1;
+        min-width: 0;
+    }
+    
+    .activity-item-title {
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+        font-size: 0.9rem;
+    }
+    
+    .activity-item-subtitle {
+        color: var(--color-fg-muted, #656d76);
+        font-size: 0.8rem;
+    }
+    
+    .activity-item-status {
+        text-align: right;
+    }
+    
+    /* Status badges */
+    .status-indicator {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+        font-weight: 500;
+        border-radius: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .status-success {
+        background-color: #dafbe1;
+        color: #0f5132;
+    }
+    
+    .status-warning {
+        background-color: #fff3cd;
+        color: #664d03;
+    }
+    
+    .status-info {
+        background-color: #cff4fc;
+        color: #055160;
+    }
+    
+    .status-secondary {
+        background-color: #e2e3e5;
+        color: #41464b;
+    }
+    
+    /* Quick actions grid */
+    .quick-actions-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 1rem;
+        margin-top: 1.5rem;
+    }
+    
+    .quick-action-card {
+        background: var(--color-canvas-default, #ffffff);
+        border: 1px solid var(--color-border-default, #d0d7de);
+        border-radius: 8px;
+        padding: 1.25rem;
+        text-align: center;
+        text-decoration: none;
+        color: var(--color-fg-default, #1f2328);
+        transition: all 0.2s ease;
+    }
+    
+    .quick-action-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        color: var(--color-fg-default, #1f2328);
+        text-decoration: none;
+        border-color: var(--color-accent-emphasis, #0969da);
+    }
+    
+    .quick-action-icon {
+        font-size: 2rem;
+        margin-bottom: 0.75rem;
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .dashboard-stats {
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+        
+        .dashboard-stat-card {
+            padding: 1.25rem;
+        }
+        
+        .stat-number {
+            font-size: 1.8rem;
+        }
+        
+        .stat-icon-large {
+            font-size: 2rem;
+        }
+        
+        .chart-wrapper,
+        .activity-wrapper {
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .chart-canvas-container {
+            height: 250px;
+        }
+    }
+    
+    @media (max-width: 480px) {
+        .dashboard-stats {
+            grid-template-columns: 1fr 1fr;
+        }
+        
+        .chart-header-section {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.75rem;
+        }
     }
 </style>
+{% endblock %}
 
-<!-- Header -->
-<div class="main-header">
-    <h2><i class="fas fa-tachometer-alt me-2"></i> Dashboard Overview</h2>
-    <p class="lead mb-0">Welcome back! Here's a real-time summary of your operations.</p>
-</div>
-
-<!-- Statistics Cards -->
-<div class="row g-4 mb-4">
-    <div class="col-lg-2 col-md-4 col-sm-6">
-        <div class="card stats-card border-info-left">
-            <div class="card-body">
-                <h5>Total Orders</h5>
-                <p class="text-info-dark">{{ stats.total_orders }}</p>
-                <div class="icon text-info-dark"><i class="fas fa-box-open"></i></div>
-            </div>
+{% block content %}
+<div class="container-fluid p-0">
+    <!-- Page Header -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4">
+        <div class="mb-3 mb-md-0">
+            <h1 class="h2 mb-2">Dashboard Overview</h1>
+            <p class="text-muted mb-0">Welcome back, {{ session.employee_name }}! Here's your real-time operations summary.</p>
         </div>
-    </div>
-    <div class="col-lg-2 col-md-4 col-sm-6">
-        <div class="card stats-card border-warning-left">
-            <div class="card-body">
-                <h5>Pending Orders</h5>
-                <p class="text-warning-dark">{{ stats.pending_orders }}</p>
-                <div class="icon text-warning-dark"><i class="fas fa-clock"></i></div>
-            </div>
-        </div>
-    </div>
-    <div class="col-lg-2 col-md-4 col-sm-6">
-        <div class="card stats-card border-primary-left">
-            <div class="card-body">
-                <h5>Active Jobs</h5>
-                <p class="text-primary-dark">{{ stats.active_jobs }}</p>
-                <div class="icon text-primary-dark"><i class="fas fa-tasks"></i></div>
-            </div>
-        </div>
-    </div>
-    <div class="col-lg-2 col-md-4 col-sm-6">
-        <div class="card stats-card border-success-left">
-            <div class="card-body">
-                <h5>Vehicles Free</h5>
-                <p class="text-success-dark">{{ stats.available_vehicles }}</p>
-                <div class="icon text-success-dark"><i class="fas fa-truck"></i></div>
-            </div>
-        </div>
-    </div>
-    <div class="col-lg-2 col-md-4 col-sm-6">
-        <div class="card stats-card border-secondary-left">
-            <div class="card-body">
-                <h5>Total Fleet</h5>
-                <p class="text-secondary-dark">{{ stats.total_vehicles }}</p>
-                <div class="icon text-secondary-dark"><i class="fas fa-truck-pickup"></i></div>
-            </div>
-        </div>
-    </div>
-    <div class="col-lg-2 col-md-4 col-sm-6">
-        <div class="card stats-card border-danger-left">
-            <div class="card-body">
-                <h5>Low Stock</h5>
-                <p class="text-danger-dark">{{ stats.low_inventory }}</p>
-                <div class="icon text-danger-dark"><i class="fas fa-exclamation-triangle"></i></div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="row g-4">
-    <!-- Recent Orders & Jobs in a Tabbed View -->
-    <div class="col-lg-8">
-        <div class="card card-table h-100">
-            <div class="card-header">
-                <ul class="nav nav-tabs card-header-tabs" id="data-tabs" role="tablist">
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link active" id="orders-tab" data-bs-toggle="tab" data-bs-target="#orders-panel" type="button">
-                            <i class="fas fa-shopping-cart me-1"></i> Recent Orders
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="jobs-tab" data-bs-toggle="tab" data-bs-target="#jobs-panel" type="button">
-                            <i class="fas fa-clipboard-list me-1"></i> Recent Jobs
-                        </button>
-                    </li>
-                </ul>
-            </div>
-            <div class="card-body p-0">
-                <div class="tab-content">
-                    <div class="tab-pane fade show active" id="orders-panel" role="tabpanel">
-                        <div class="table-responsive">
-                            <table class="table table-hover mb-0">
-                                <thead>
-                                    <tr><th>ID</th><th>Customer</th><th>Product</th><th>Status</th></tr>
-                                </thead>
-                                <tbody>
-                                    {% for order in recent_orders %}
-                                    <tr>
-                                        <td><strong>#{{ order.OrderID }}</strong></td>
-                                        <td>{{ order.CustomerName }}</td>
-                                        <td>{{ order.ProductName }} ({{ order.Quantity }})</td>
-                                        <td><span class="badge bg-{% if order.Status == 'Confirmed' %}warning{% elif order.Status == 'Delivered' %}success{% else %}secondary{% endif %}">{{ order.Status }}</span></td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                    <div class="tab-pane fade" id="jobs-panel" role="tabpanel">
-                        <div class="table-responsive">
-                            <table class="table table-hover mb-0">
-                                <thead>
-                                    <tr><th>ID</th><th>Type</th><th>Assigned To</th><th>Status</th></tr>
-                                </thead>
-                                <tbody>
-                                    {% for job in recent_jobs %}
-                                    <tr>
-                                        <td><strong>#{{ job.JobCardID }}</strong></td>
-                                        <td>{{ job.JobType }}</td>
-                                        <td>{{ job.AssignedTo or 'Unassigned' }}</td>
-                                        <td><span class="badge bg-{% if job.Status == 'Open' %}warning{% elif job.Status == 'Completed' %}success{% elif job.Status == 'In Progress' %}primary{% else %}secondary{% endif %}">{{ job.Status }}</span></td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-secondary btn-sm" onclick="refreshDashboard()">
+                <i class="fas fa-sync-alt me-1"></i>
+                Refresh
+            </button>
+            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#quickOrderModal">
+                <i class="fas fa-plus me-1"></i>
+                Quick Order
+            </button>
         </div>
     </div>
 
-    <!-- Alerts and Actions Column -->
-    <div class="col-lg-4">
-        {% if low_inventory %}
-        <div class="card mb-4" style="background: linear-gradient(135deg, #ffc107, #dc3545); color: white;">
-            <div class="card-body">
-                <h5 class="card-title fw-bold"><i class="fas fa-exclamation-circle me-2"></i>Low Inventory Alert</h5>
-                <ul class="list-group list-group-flush">
-                    {% for item in low_inventory %}
-                    <li class="list-group-item bg-transparent text-white d-flex justify-content-between align-items-center border-white-50 py-2">
-                        {{ item.MaterialName }}
-                        <span class="badge bg-light text-dark rounded-pill">{{ item.CurrentStock }} / {{ item.Threshold }} {{ item.Unit }}</span>
-                    </li>
-                    {% endfor %}
-                </ul>
+    <!-- Statistics Cards -->
+    <div class="dashboard-stats">
+        <div class="dashboard-stat-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+            <div class="stat-change-badge">+12%</div>
+            <div class="stat-icon-large">
+                <i class="fas fa-shopping-cart"></i>
             </div>
+            <div class="stat-number">{{ stats.total_orders }}</div>
+            <div class="stat-title">Total Orders</div>
         </div>
-        {% endif %}
         
-        <div class="card">
-            <div class="card-header">
-                <h5><i class="fas fa-cogs me-2"></i>Quick Actions</h5>
+        <div class="dashboard-stat-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+            <div class="stat-change-badge">+8%</div>
+            <div class="stat-icon-large">
+                <i class="fas fa-clock"></i>
             </div>
-            <div class="card-body">
-                <div class="d-grid gap-3">
-                    <button class="btn btn-primary btn-lg" onclick="autoCreateJobs()"><i class="fas fa-plus me-2"></i> Auto-Create Jobs</button>
-                    <button class="btn btn-success btn-lg" onclick="syncInventory()"><i class="fas fa-sync me-2"></i> Sync Inventory</button>
+            <div class="stat-number">{{ stats.pending_orders }}</div>
+            <div class="stat-title">Pending Orders</div>
+        </div>
+        
+        <div class="dashboard-stat-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+            <div class="stat-change-badge">+15%</div>
+            <div class="stat-icon-large">
+                <i class="fas fa-tasks"></i>
+            </div>
+            <div class="stat-number">{{ stats.active_jobs }}</div>
+            <div class="stat-title">Active Jobs</div>
+        </div>
+        
+        <div class="dashboard-stat-card" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+            <div class="stat-change-badge">-2%</div>
+            <div class="stat-icon-large">
+                <i class="fas fa-truck"></i>
+            </div>
+            <div class="stat-number">{{ stats.available_vehicles }}</div>
+            <div class="stat-title">Available Vehicles</div>
+        </div>
+        
+        <div class="dashboard-stat-card" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">
+            <div class="stat-change-badge">{{ stats.total_vehicles }}</div>
+            <div class="stat-icon-large">
+                <i class="fas fa-shipping-fast"></i>
+            </div>
+            <div class="stat-number">{{ stats.total_vehicles }}</div>
+            <div class="stat-title">Total Fleet</div>
+        </div>
+        
+        <div class="dashboard-stat-card" style="background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);">
+            <div class="stat-change-badge">{% if stats.low_inventory > 0 %}-{{ stats.low_inventory }}{% else %}✓{% endif %}</div>
+            <div class="stat-icon-large">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <div class="stat-number">{{ stats.low_inventory }}</div>
+            <div class="stat-title">Low Stock Items</div>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="row">
+        <div class="col-lg-8 mb-4">
+            <div class="chart-wrapper">
+                <div class="chart-header-section">
+                    <h3 class="chart-title-text">Production Trends</h3>
+                    <div class="btn-group btn-group-sm" role="group">
+                        <input type="radio" class="btn-check" name="chartPeriod" id="weekBtn" autocomplete="off" checked>
+                        <label class="btn btn-outline-primary" for="weekBtn">Week</label>
+                        
+                        <input type="radio" class="btn-check" name="chartPeriod" id="monthBtn" autocomplete="off">
+                        <label class="btn btn-outline-primary" for="monthBtn">Month</label>
+                        
+                        <input type="radio" class="btn-check" name="chartPeriod" id="yearBtn" autocomplete="off">
+                        <label class="btn btn-outline-primary" for="yearBtn">Year</label>
+                    </div>
+                </div>
+                <div class="chart-canvas-container">
+                    <canvas id="productionChart"></canvas>
                 </div>
             </div>
+        </div>
+        
+        <div class="col-lg-4 mb-4">
+            <div class="chart-wrapper">
+                <div class="chart-header-section">
+                    <h3 class="chart-title-text">Order Status</h3>
+                </div>
+                <div class="chart-canvas-container">
+                    <canvas id="orderStatusChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activity and Quick Actions -->
+    <div class="row">
+        <div class="col-lg-8 mb-4">
+            <div class="activity-wrapper">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h3 class="chart-title-text">Recent Activity</h3>
+                    <a href="#" class="btn btn-outline-primary btn-sm">View All</a>
+                </div>
+                <div class="activity-list">
+                    {% for order in recent_orders %}
+                    <div class="activity-list-item">
+                        <div class="activity-item-icon bg-primary text-white">
+                            <i class="fas fa-shopping-cart"></i>
+                        </div>
+                        <div class="activity-item-content">
+                            <div class="activity-item-title">Order #{{ order.OrderID }} - {{ order.CustomerName }}</div>
+                            <div class="activity-item-subtitle">{{ order.ProductName }} ({{ order.Quantity }} units)</div>
+                        </div>
+                        <div class="activity-item-status">
+                            <span class="status-indicator status-{{ 'success' if order.Status == 'Completed' else 'warning' if order.Status == 'Pending' else 'info' }}">
+                                {{ order.Status }}
+                            </span>
+                            <div class="activity-item-subtitle mt-1">{{ order.OrderDate }}</div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    
+                    {% for job in recent_jobs %}
+                    <div class="activity-list-item">
+                        <div class="activity-item-icon bg-info text-white">
+                            <i class="fas fa-tasks"></i>
+                        </div>
+                        <div class="activity-item-content">
+                            <div class="activity-item-title">Job #{{ job.JobCardID }} - {{ job.JobType }}</div>
+                            <div class="activity-item-subtitle">Assigned to: {{ job.AssignedTo or 'Unassigned' }}</div>
+                        </div>
+                        <div class="activity-item-status">
+                            <span class="status-indicator status-{{ 'success' if job.Status == 'Completed' else 'warning' if job.Status == 'In Progress' else 'secondary' }}">
+                                {{ job.Status }}
+                            </span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4 mb-4">
+            <!-- Low Stock Alert -->
+            {% if low_inventory %}
+            <div class="activity-wrapper mb-4">
+                <div class="d-flex align-items-center mb-3">
+                    <i class="fas fa-exclamation-triangle text-warning me-2"></i>
+                    <h3 class="chart-title-text text-warning mb-0">Low Stock Alert</h3>
+                </div>
+                <div class="list-group list-group-flush">
+                    {% for item in low_inventory %}
+                    <div class="list-group-item d-flex justify-content-between align-items-center border-0 px-0">
+                        <div>
+                            <div class="activity-item-title">{{ item.MaterialName }}</div>
+                            <small class="activity-item-subtitle">{{ item.CurrentStock }} / {{ item.Threshold }} {{ item.Unit }}</small>
+                        </div>
+                        <button class="btn btn-sm btn-outline-primary">Reorder</button>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Quick Actions -->
+            <div class="activity-wrapper">
+                <h3 class="chart-title-text mb-3">Quick Actions</h3>
+                <div class="quick-actions-grid">
+                    <a href="{{ url_for('erp_new_order') }}" class="quick-action-card">
+                        <i class="fas fa-plus-circle text-primary quick-action-icon"></i>
+                        <div class="activity-item-title">New Order</div>
+                        <small class="activity-item-subtitle">Create customer order</small>
+                    </a>
+                    <a href="{{ url_for('erp_production') }}" class="quick-action-card">
+                        <i class="fas fa-industry text-success quick-action-icon"></i>
+                        <div class="activity-item-title">Production</div>
+                        <small class="activity-item-subtitle">Manage batches</small>
+                    </a>
+                    <a href="{{ url_for('jobkart_new_job') }}" class="quick-action-card">
+                        <i class="fas fa-clipboard-list text-info quick-action-icon"></i>
+                        <div class="activity-item-title">New Job</div>
+                        <small class="activity-item-subtitle">Create job card</small>
+                    </a>
+                    <a href="{{ url_for('erp_inventory') }}" class="quick-action-card">
+                        <i class="fas fa-boxes text-warning quick-action-icon"></i>
+                        <div class="activity-item-title">Inventory</div>
+                        <small class="activity-item-subtitle">Check stock levels</small>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Order Modal -->
+<div class="modal fade" id="quickOrderModal" tabindex="-1" aria-labelledby="quickOrderModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="quickOrderModalLabel">Quick Order</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ url_for('erp_new_order') }}" method="POST">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="customer_id" class="form-label">Customer</label>
+                        <select name="customer_id" class="form-select" required>
+                            <option value="">Select Customer</option>
+                            <!-- Add customer options here -->
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="product_id" class="form-label">Product</label>
+                        <select name="product_id" class="form-select" required>
+                            <option value="">Select Product</option>
+                            <!-- Add product options here -->
+                        </select>
+                    </div>
+                    <div class="row">
+                        <div class="col-6">
+                            <div class="mb-3">
+                                <label for="quantity" class="form-label">Quantity</label>
+                                <input type="number" name="quantity" class="form-control" required>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="mb-3">
+                                <label for="scheduled_date" class="form-label">Delivery Date</label>
+                                <input type="date" name="scheduled_date" class="form-control" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="delivery_site" class="form-label">Delivery Site</label>
+                        <textarea name="delivery_site" class="form-control" rows="2" required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Order</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
@@ -313,30 +538,90 @@
 
 {% block scripts %}
 <script>
-function autoCreateJobs() {
-    fetch('/api/auto_create_jobs', { method: 'POST', headers: {'Content-Type': 'application/json'} })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert(`${data.created_jobs} job cards created successfully!`);
-            location.reload();
-        } else {
-            alert('Failed to create job cards');
-        }
-    }).catch(error => console.error('Error:', error));
-}
+document.addEventListener('DOMContentLoaded', function() {
+    // Production Chart
+    const productionCtx = document.getElementById('productionChart');
+    if (productionCtx) {
+        const productionChart = new Chart(productionCtx, {
+            type: 'line',
+            data: {
+                labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                datasets: [{
+                    label: 'Concrete Production (m³)',
+                    data: [150, 180, 165, 200, 175, 190, 160],
+                    borderColor: '#667eea',
+                    backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.4,
+                    pointBackgroundColor: '#667eea',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    pointRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(0,0,0,0.05)'
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
+    }
 
-function syncInventory() {
-    fetch('/api/sync_inventory', { method: 'POST', headers: {'Content-Type': 'application/json'} })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert(`${data.synced_jobs} inventory records synchronized!`);
-            location.reload();
-        } else {
-            alert('Failed to sync inventory');
-        }
-    }).catch(error => console.error('Error:', error));
+    // Order Status Chart
+    const orderStatusCtx = document.getElementById('orderStatusChart');
+    if (orderStatusCtx) {
+        const orderStatusChart = new Chart(orderStatusCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Completed', 'In Progress', 'Pending', 'Cancelled'],
+                datasets: [{
+                    data: [{{ stats.total_orders - stats.pending_orders }}, {{ stats.active_jobs }}, {{ stats.pending_orders }}, 5],
+                    backgroundColor: [
+                        '#43e97b',
+                        '#4facfe',
+                        '#f093fb',
+                        '#ff9a9e'
+                    ],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 20,
+                            usePointStyle: true
+                        }
+                    }
+                }
+            }
+        });
+    }
+});
+
+function refreshDashboard() {
+    window.location.reload();
 }
 </script>
 {% endblock %}

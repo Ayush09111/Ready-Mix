@@ -141,6 +141,83 @@ def erp_orders():
     conn.close()
     return render_template('erp/orders.html', orders=orders)
 
+@app.route('/api/search')
+@login_required
+def global_search():
+    query = request.args.get('q', '').strip()
+    if not query:
+        return jsonify({'results': []})
+    
+    conn = get_db_connection()
+    results = []
+    
+    try:
+        # Search in Orders
+        orders = conn.execute('''
+            SELECT o.OrderID as id, 'order' as type, 
+                   'Order #' || o.OrderID || ' - ' || c.CustomerName as title,
+                   'Quantity: ' || o.Quantity || ' | Status: ' || o.Status as description,
+                   '/erp/orders/' || o.OrderID as url
+            FROM Orders o 
+            JOIN Customers c ON o.CustomerID = c.CustomerID 
+            WHERE c.CustomerName LIKE ? OR o.OrderID LIKE ?
+            LIMIT 5
+        ''', (f'%{query}%', f'%{query}%')).fetchall()
+        
+        for order in orders:
+            results.append(dict(order))
+        
+        # Search in Customers
+        customers = conn.execute('''
+            SELECT CustomerID as id, 'customer' as type,
+                   CustomerName as title,
+                   COALESCE(Address, '') as description,
+                   '/erp/crm' as url
+            FROM Customers 
+            WHERE CustomerName LIKE ? OR Address LIKE ?
+            LIMIT 5
+        ''', (f'%{query}%', f'%{query}%')).fetchall()
+        
+        for customer in customers:
+            results.append(dict(customer))
+        
+        # Search in Inventory
+        inventory = conn.execute('''
+            SELECT MaterialID as id, 'material' as type,
+                   MaterialName as title,
+                   'Stock: ' || CurrentStock || ' ' || Unit as description,
+                   '/erp/inventory' as url
+            FROM Inventory 
+            WHERE MaterialName LIKE ?
+            LIMIT 5
+        ''', (f'%{query}%',)).fetchall()
+        
+        for item in inventory:
+            results.append(dict(item))
+        
+        # Search in Employees
+        employees = conn.execute('''
+            SELECT e.EmployeeID as id, 'employee' as type,
+                   e.Name as title,
+                   r.RoleName as description,
+                   '/erp/employees' as url
+            FROM Employees e 
+            LEFT JOIN Roles r ON e.RoleID = r.RoleID
+            WHERE e.Name LIKE ?
+            LIMIT 5
+        ''', (f'%{query}%',)).fetchall()
+        
+        for employee in employees:
+            results.append(dict(employee))
+            
+    except Exception as e:
+        print(f"Search error: {e}")
+    finally:
+        conn.close()
+    
+    return jsonify({'results': results[:15]})  # Limit to 15 results
+
+
 @app.route('/erp/orders/new', methods=['GET', 'POST'])
 @login_required
 def erp_new_order():
