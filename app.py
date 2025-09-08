@@ -230,6 +230,7 @@ def erp_new_order():
         scheduled_date = request.form['scheduled_date']
         
         cursor = conn.cursor()
+        
         cursor.execute('''
             INSERT INTO Orders (CustomerID, ProductID, Quantity, OrderDate, DeliverySite, ScheduledDate, Status, CreatedBy)
             VALUES (?, ?, ?, ?, ?, ?, 'Confirmed', ?)
