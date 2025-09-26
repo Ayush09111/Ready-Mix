@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 import sqlite3
 import hashlib
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from functools import wraps
 import os
 
@@ -492,6 +492,95 @@ def erp_delete_employee(employee_id):
     finally:
         conn.close()
     return redirect(url_for('erp_employees'))
+
+# --- Attendance Management Routes ---
+@app.route('/erp/attendance', methods=['GET'])
+@login_required
+def erp_attendance():
+    conn = get_db_connection()
+    
+    employee_id_filter = request.args.get('employee_id')
+    date_filter = request.args.get('date', date.today().isoformat())
+    
+    today = date.today().isoformat()
+    
+    is_hr_or_admin = session.get('role') in ['Administrator', 'Human Resources']
+    
+    if is_hr_or_admin:
+        query = '''
+            SELECT a.*, e.Name, 
+            CAST((JULIANDAY(a.CheckOutTime) - JULIANDAY(a.CheckInTime)) * 24 AS REAL) as total_hours 
+            FROM Attendance a
+            JOIN Employees e ON a.EmployeeID = e.EmployeeID
+            WHERE a.AttendanceDate = ?
+        '''
+        params = [date_filter]
+        
+        if employee_id_filter:
+            query += ' AND a.EmployeeID = ?'
+            params.append(employee_id_filter)
+        
+        query += ' ORDER BY e.Name'
+        attendance_records = conn.execute(query, params).fetchall()
+        all_employees = conn.execute('SELECT EmployeeID, Name FROM Employees ORDER BY Name').fetchall()
+        
+        # Add a check for today's attendance, marking absentees
+        if not employee_id_filter and date_filter == today:
+            present_employees = [rec['EmployeeID'] for rec in attendance_records]
+            all_employees_today = conn.execute('SELECT EmployeeID, Name FROM Employees').fetchall()
+            for emp in all_employees_today:
+                if emp['EmployeeID'] not in present_employees:
+                    attendance_records.append({
+                        'AttendanceID': None,
+                        'EmployeeID': emp['EmployeeID'],
+                        'AttendanceDate': today,
+                        'Name': emp['Name'],
+                        'Status': 'Absent',
+                        'CheckInTime': None,
+                        'CheckOutTime': None,
+                        'total_hours': None
+                    })
+            attendance_records = sorted(attendance_records, key=lambda x: x['Name'])
+            
+        conn.close()
+        return render_template('erp/attendance.html', attendance_records=attendance_records, all_employees=all_employees, today=today)
+    else:
+        # Regular employee view
+        query = '''
+            SELECT *, 
+            CAST((JULIANDAY(CheckOutTime) - JULIANDAY(CheckInTime)) * 24 AS REAL) as total_hours 
+            FROM Attendance 
+            WHERE EmployeeID = ?
+            ORDER BY AttendanceDate DESC
+        '''
+        attendance_records = conn.execute(query, (session['employee_id'],)).fetchall()
+        conn.close()
+        return render_template('erp/attendance.html', attendance_records=attendance_records)
+
+@app.route('/erp/attendance/edit/<int:attendance_id>', methods=['POST'])
+@login_required
+@hr_required
+def erp_edit_attendance(attendance_id):
+    conn = get_db_connection()
+    
+    # HR cannot edit their own attendance
+    record_owner = conn.execute('SELECT EmployeeID FROM Attendance WHERE AttendanceID = ?', (attendance_id,)).fetchone()
+    if session.get('role') == 'Human Resources' and record_owner and record_owner['EmployeeID'] == session.get('employee_id'):
+        flash('You do not have permission to edit your own attendance record.', 'danger')
+        conn.close()
+        return redirect(url_for('erp_attendance'))
+
+    attendance_date = request.form['attendance_date']
+    check_in_time = request.form['check_in_time']
+    check_out_time = request.form['check_out_time']
+    
+    conn.execute('UPDATE Attendance SET CheckInTime = ?, CheckOutTime = ? WHERE AttendanceID = ?', 
+                 (check_in_time, check_out_time, attendance_id))
+    log_audit(conn, 'Attendance', attendance_id, 'Update', session['user_id'], f"Attendance record #{attendance_id} edited.")
+    conn.commit()
+    conn.close()
+    flash('Attendance record updated successfully!', 'success')
+    return redirect(url_for('erp_attendance'))
 
 # --- User Management Routes ---
 @app.route('/erp/users', methods=['GET', 'POST'])
@@ -1063,7 +1152,7 @@ def auto_create_jobs():
         scheduled_start = f"{order['ScheduledDate']} 08:00:00"
         scheduled_end = f"{order['ScheduledDate']} 17:00:00"
         conn.execute("INSERT INTO JobCards (RelatedOrderID, JobType, Description, AssignedTo, Status, Priority, ScheduledStart, ScheduledEnd) VALUES (?, 'Delivery', ?, 5, 'Open', 'Medium', ?, ?)",
-                     (order['OrderID'], description, scheduled_start, scheduled_end))
+                     (order['OrderID'], description, assigned_to, priority, scheduled_start, scheduled_end))
         created_count += 1
     conn.commit()
     conn.close()
@@ -1078,4 +1167,39 @@ def sync_inventory():
     return jsonify({'success': True, 'synced_jobs': 0})
 
 if __name__ == '__main__':
+    # Initial data seeding and database setup for demonstration
+    conn = sqlite3.connect(DATABASE)
+    cursor = conn.cursor()
+    
+    # Create Attendance table if it doesn't exist
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS Attendance (
+            AttendanceID INTEGER PRIMARY KEY AUTOINCREMENT,
+            EmployeeID INTEGER,
+            AttendanceDate DATE,
+            Status TEXT,
+            CheckInTime TIME,
+            CheckOutTime TIME,
+            FOREIGN KEY (EmployeeID) REFERENCES Employees(EmployeeID)
+        )
+    ''')
+
+    # Seed some sample attendance data
+    today = date.today()
+    for i in range(1, 10):
+        # Sample present record
+        cursor.execute('''
+            INSERT OR REPLACE INTO Attendance (EmployeeID, AttendanceDate, Status, CheckInTime, CheckOutTime)
+            VALUES (?, ?, ?, ?, ?)
+        ''', (i, today - timedelta(days=1), 'Present', '09:00:00', '18:00:00'))
+        
+        # Sample absent record
+        cursor.execute('''
+            INSERT OR REPLACE INTO Attendance (EmployeeID, AttendanceDate, Status, CheckInTime, CheckOutTime)
+            VALUES (?, ?, ?, ?, ?)
+        ''', (i, today - timedelta(days=2), 'Absent', None, None))
+    
+    conn.commit()
+    conn.close()
+    
     app.run(debug=True, port=5000)

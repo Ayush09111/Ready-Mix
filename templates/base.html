@@ -4,12 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Atal Ready Mix Pro{% endblock %}</title>
-    
     <!-- External Resources -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    
     <style>
         :root {
             /* GitHub-inspired Color System */
@@ -28,12 +26,10 @@
             --color-warning-fg: #9a6700;
             --color-neutral-muted: rgba(175,184,193,0.2);
             --color-primer-shadow-focus: 0 0 0 3px rgba(9,105,218,0.3);
-            
             /* Layout Variables */
             --header-height: 64px;
             --sidebar-width: 280px;
         }
-
         [data-color-mode="dark"] {
             --color-canvas-default: #0d1117;
             --color-canvas-subtle: #161b22;
@@ -46,11 +42,9 @@
             --color-accent-fg: #2f81f7;
             --color-accent-emphasis: #1f6feb;
         }
-
         * {
             box-sizing: border-box;
         }
-
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             font-size: 14px;
@@ -60,7 +54,6 @@
             margin: 0;
             overflow-x: hidden;
         }
-
         /* Modern Header */
         .modern-header {
             background-color: var(--color-canvas-default);
@@ -71,7 +64,6 @@
             backdrop-filter: blur(12px);
             height: var(--header-height);
         }
-
         .header-content {
             display: flex;
             align-items: center;
@@ -79,13 +71,11 @@
             height: 100%;
             padding: 0 24px;
         }
-
         .header-left {
             display: flex;
             align-items: center;
             gap: 16px;
         }
-
         .header-logo {
             display: flex;
             align-items: center;
@@ -95,17 +85,14 @@
             font-weight: 600;
             font-size: 18px;
         }
-
         .header-logo:hover {
             color: var(--color-fg-default);
             text-decoration: none;
         }
-
         .header-search {
             position: relative;
             width: 320px;
         }
-
         .header-search input {
             width: 100%;
             padding: 8px 16px 8px 40px;
@@ -116,14 +103,12 @@
             font-size: 14px;
             transition: all 0.2s ease;
         }
-
         .header-search input:focus {
             outline: none;
             border-color: var(--color-accent-emphasis);
             box-shadow: var(--color-primer-shadow-focus);
             background-color: var(--color-canvas-default);
         }
-
         .header-search-icon {
             position: absolute;
             left: 12px;
@@ -131,13 +116,11 @@
             transform: translateY(-50%);
             color: var(--color-fg-muted);
         }
-
         .header-right {
             display: flex;
             align-items: center;
             gap: 12px;
         }
-
         .header-btn {
             display: flex;
             align-items: center;
@@ -151,12 +134,10 @@
             cursor: pointer;
             transition: all 0.2s ease;
         }
-
         .header-btn:hover {
             background-color: var(--color-neutral-muted);
             color: var(--color-fg-default);
         }
-
         /* Modern Sidebar */
         .modern-sidebar {
             position: fixed;
@@ -171,12 +152,10 @@
             z-index: 100;
             transition: transform 0.3s ease;
         }
-
         .sidebar-section {
             margin-bottom: 24px;
             padding: 0 16px;
         }
-
         .sidebar-section-title {
             font-size: 12px;
             font-weight: 600;
@@ -186,17 +165,14 @@
             margin-bottom: 8px;
             padding: 0 8px;
         }
-
         .sidebar-nav {
             list-style: none;
             padding: 0;
             margin: 0;
         }
-
         .sidebar-nav-item {
             margin-bottom: 2px;
         }
-
         .sidebar-nav-link {
             display: flex;
             align-items: center;
@@ -209,45 +185,38 @@
             transition: all 0.15s ease;
             border-left: 3px solid transparent;
         }
-
         .sidebar-nav-link:hover {
             background-color: var(--color-neutral-muted);
             color: var(--color-fg-default);
             text-decoration: none;
         }
-
         .sidebar-nav-link.active {
             background-color: var(--color-accent-emphasis);
             color: white;
             font-weight: 600;
         }
-
         .sidebar-nav-icon {
             width: 16px;
             height: 16px;
             margin-right: 12px;
             flex-shrink: 0;
         }
-
         .sidebar-submenu {
             margin-left: 28px;
             margin-top: 4px;
         }
-
         .sidebar-submenu .sidebar-nav-link {
             padding: 6px 12px;
             font-size: 13px;
             font-weight: 400;
         }
-
         /* Main Content */
         .main-content {
             margin-left: var(--sidebar-width);
             min-height: calc(100vh - var(--header-height));
             background-color: var(--color-canvas-default);
             padding: 24px;
-        }
-
+        }	
         /* Modern Cards */
         .modern-card {
             background-color: var(--color-canvas-default);
@@ -258,7 +227,6 @@
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
             transition: all 0.2s ease;
         }
-
         .modern-card:hover {
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
         }
@@ -545,6 +513,12 @@
                         Employees
                     </a>
                 </li>
+				<li class="sidebar-nav-item">
+                    <a href="{{ url_for('erp_attendance') }}" class="sidebar-nav-link {{ 'active' if 'attendance' in request.endpoint }}">
+                        <i class="fas fa-fingerprint sidebar-nav-icon"></i>
+                        Attendance
+                    </a>
+                </li>
                 <li class="sidebar-nav-item">
                     <a href="{{ url_for('jobkart_jobs') }}" class="sidebar-nav-link {{ 'active' if 'jobkart' in request.endpoint }}">
                         <i class="fas fa-tasks sidebar-nav-icon"></i>
@@ -559,7 +533,6 @@
                 </li>
             </ul>
         </div>
-
         {% if session.role == 'Administrator' %}
         <div class="sidebar-section">
             <div class="sidebar-section-title">Administration</div>

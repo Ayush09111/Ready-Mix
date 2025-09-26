@@ -1,0 +1,289 @@
+{% extends "base.html" %}
+
+{% block title %}Attendance Management - ERP System{% endblock %}
+
+{% block content %}
+<style>
+    .main-header {
+        background: linear-gradient(90deg, #198754 0%, #20c997 100%);
+        color: white;
+        padding: 2.5rem;
+        border-radius: 1rem;
+        margin-bottom: 2.5rem;
+        box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+    }
+    .table thead th, .table tbody td {
+        vertical-align: middle;
+    }
+    .badge-iot {
+        background-color: #0d6efd;
+        color: white;
+    }
+    .text-green-600 {
+        color: #1a7f37;
+    }
+    .text-red-600 {
+        color: #d1242f;
+    }
+    .form-control-sm {
+        height: calc(1.5em + 0.5rem + 2px);
+    }
+    .custom-modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 9998;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s ease, visibility 0.3s ease;
+    }
+    .custom-modal-overlay.active {
+        opacity: 1;
+        visibility: visible;
+    }
+    .custom-modal-content {
+        background: white;
+        border-radius: 0.5rem;
+        max-width: 500px;
+        width: 90%;
+        z-index: 9999;
+        transform: scale(0.9);
+        transition: transform 0.3s ease;
+        overflow: hidden;
+    }
+    .custom-modal-overlay.active .custom-modal-content {
+        transform: scale(1);
+    }
+    .custom-modal-header, .custom-modal-footer {
+        padding: 1rem 1.5rem;
+        background-color: #f7f7f7;
+    }
+    .custom-modal-body {
+        padding: 1.5rem;
+    }
+    .modal-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 1rem;
+    }
+</style>
+
+<div class="main-header">
+    <h2><i class="fas fa-fingerprint me-2"></i> Attendance Management</h2>
+    <p class="lead mb-0">Track and manage employee check-in and check-out records.</p>
+</div>
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="alert alert-info d-flex align-items-center" role="alert">
+            <i class="fas fa-info-circle me-2"></i>
+            <div>
+                Attendance is recorded automatically via an **IoT fingerprint scanner** at the office entrance. Check-in and check-out times are logged instantly.
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if session.role in ['Administrator', 'Human Resources'] %}
+<!-- HR/Admin View -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">All Employee Attendance</h5>
+                <form id="filterForm" class="d-flex" method="GET">
+                    <select class="form-select form-select-sm me-2" name="employee_id">
+                        <option value="">All Employees</option>
+                        {% for emp in all_employees %}
+                        <option value="{{ emp.EmployeeID }}" {% if request.args.get('employee_id') | int == emp.EmployeeID %}selected{% endif %}>{{ emp.Name }}</option>
+                        {% endfor %}
+                    </select>
+                    <input type="date" class="form-control form-control-sm me-2" name="date" value="{{ request.args.get('date', today) }}">
+                    <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-filter"></i> Filter</button>
+                </form>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Employee</th>
+                                <th>Date</th>
+                                <th>Status</th>
+                                <th>Check-in</th>
+                                <th>Check-out</th>
+                                <th>Total Hours</th>
+                                <th class="text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for record in attendance_records %}
+                            <tr>
+                                <td>{{ record.Name }}</td>
+                                <td>{{ record.AttendanceDate }}</td>
+                                <td>
+                                    <span class="badge bg-{% if record.Status == 'Present' %}success{% elif record.Status == 'Absent' %}danger{% else %}warning{% endif %}">
+                                        {{ record.Status }}
+                                    </span>
+                                </td>
+                                <td class="text-green-600">{{ record.CheckInTime or 'N/A' }}</td>
+                                <td class="text-red-600">{{ record.CheckOutTime or 'N/A' }}</td>
+                                <td>
+                                    {% if record.total_hours %}
+                                        {{ "%.2f"|format(record.total_hours) }} hrs
+                                    {% else %}
+                                        N/A
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">
+                                    {% if session.role == 'Human Resources' and session.employee_id == record.EmployeeID %}
+                                    <button class="btn btn-sm btn-outline-secondary" disabled>
+                                        <i class="fas fa-edit"></i> Edit
+                                    </button>
+                                    {% else %}
+                                    <button class="btn btn-sm btn-outline-secondary edit-btn"
+                                            data-id="{{ record.AttendanceID }}"
+                                            data-date="{{ record.AttendanceDate }}"
+                                            data-checkin="{{ record.CheckInTime or '' }}"
+                                            data-checkout="{{ record.CheckOutTime or '' }}">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </button>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="7" class="text-center text-muted">No attendance records found.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% else %}
+<!-- Employee's Own View -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">My Attendance Record</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Date</th>
+                                <th>Status</th>
+                                <th>Check-in</th>
+                                <th>Check-out</th>
+                                <th>Total Hours</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for record in attendance_records %}
+                            <tr>
+                                <td>{{ record.AttendanceDate }}</td>
+                                <td>
+                                    <span class="badge bg-{% if record.Status == 'Present' %}success{% elif record.Status == 'Absent' %}danger{% else %}warning{% endif %}">
+                                        {{ record.Status }}
+                                    </span>
+                                </td>
+                                <td class="text-green-600">{{ record.CheckInTime or 'N/A' }}</td>
+                                <td class="text-red-600">{{ record.CheckOutTime or 'N/A' }}</td>
+                                <td>
+                                    {% if record.total_hours %}
+                                        {{ "%.2f"|format(record.total_hours) }} hrs
+                                    {% else %}
+                                        N/A
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="5" class="text-center text-muted">No attendance records found for you.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Edit Attendance Modal -->
+<div id="editAttendanceModal" class="custom-modal-overlay">
+    <div class="custom-modal-content">
+        <div class="custom-modal-header">
+            <h5 class="modal-title">Edit Attendance Record</h5>
+        </div>
+        <div class="custom-modal-body">
+            <form id="attendanceForm" method="POST">
+                <input type="hidden" id="attendanceId" name="attendance_id">
+                <div class="mb-3">
+                    <label for="recordDate" class="form-label">Date</label>
+                    <input type="date" class="form-control" id="recordDate" name="attendance_date" readonly>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="checkInTime" class="form-label">Check-in Time</label>
+                        <input type="time" class="form-control" id="checkInTime" name="check_in_time">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="checkOutTime" class="form-label">Check-out Time</label>
+                        <input type="time" class="form-control" id="checkOutTime" name="check_out_time">
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="custom-modal-footer">
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" id="cancelEditBtn">Cancel</button>
+                <button type="submit" form="attendanceForm" class="btn btn-primary">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const editModal = document.getElementById('editAttendanceModal');
+    const attendanceIdInput = document.getElementById('attendanceId');
+    const recordDateInput = document.getElementById('recordDate');
+    const checkInTimeInput = document.getElementById('checkInTime');
+    const checkOutTimeInput = document.getElementById('checkOutTime');
+    const cancelEditBtn = document.getElementById('cancelEditBtn');
+    const attendanceForm = document.getElementById('attendanceForm');
+
+    function showEditModal() { editModal.classList.add('active'); }
+    function hideEditModal() { editModal.classList.remove('active'); }
+
+    document.querySelectorAll('.edit-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            attendanceIdInput.value = this.dataset.id;
+            recordDateInput.value = this.dataset.date;
+            checkInTimeInput.value = this.dataset.checkin;
+            checkOutTimeInput.value = this.dataset.checkout;
+            attendanceForm.action = `/erp/attendance/edit/${this.dataset.id}`;
+            showEditModal();
+        });
+    });
+
+    cancelEditBtn.addEventListener('click', hideEditModal);
+    editModal.addEventListener('click', function(e) { if(e.target === this) hideEditModal(); });
+});
+</script>
+{% endblock %}
